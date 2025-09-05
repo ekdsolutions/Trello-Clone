@@ -22,7 +22,7 @@ export function useBoards() {
     if (user) {
       loadBoards();
     }
-  }, [user, supabase]);
+  }, [user]);
 
   async function loadBoards() {
     if (!user) return;
@@ -75,7 +75,7 @@ export function useBoard(boardId: string) {
     if (boardId) {
       loadBoard();
     }
-  }, [boardId, supabase]);
+  }, [boardId]);
 
   async function loadBoard() {
     if (!boardId) return;
