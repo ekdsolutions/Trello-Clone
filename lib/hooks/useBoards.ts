@@ -33,7 +33,7 @@ export function useBoards() {
       const data = await boardService.getBoards(supabase!, user.id);
       setBoards(data);
     } catch (err) {
-        console.log(err);
+      console.log(err);
       setError(err instanceof Error ? err.message : "Failed to load boards.");
     } finally {
       setLoading(false);
@@ -113,5 +113,56 @@ export function useBoard(boardId: string) {
     }
   }
 
-  return { board, columns, loading, error, updateBoard };
+  async function createRealTask(
+    columnId: string,
+    taskData: {
+      title: string;
+      description?: string;
+      assignee?: string;
+      dueDate?: string;
+      priority?: "low" | "medium" | "high";
+    }
+  ) {
+    try {
+      const newTask = await taskService.createTask(supabase!, {
+        title: taskData.title,
+        description: taskData.description || null,
+        assignee: taskData.assignee || null,
+        due_date: taskData.dueDate || null,
+        column_id: columnId,
+        sort_order:
+          columns.find((col) => col.id === columnId)?.tasks.length || 0,
+        priority: taskData.priority || "medium",
+      });
+
+      setColumns((prev) =>
+        prev.map((col) =>
+          col.id === columnId ? { ...col, tasks: [...col.tasks, newTask] } : col
+        )
+      );
+
+      return newTask;
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to create the task."
+      );
+    }
+  }
+
+  async function moveTask(
+    taskId: string,
+    newColumnId: string,
+    newOrder: number
+  ) {}
+
+  return {
+    board,
+    columns,
+    setColumns,
+    loading,
+    error,
+    updateBoard,
+    createRealTask,
+    moveTask,
+  };
 }
