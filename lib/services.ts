@@ -30,10 +30,10 @@ export const boardService = {
 
     if (error) throw error;
 
-    return (data || []).map((board: any) => {
+    return (data || []).map((board: Board & { columns?: Array<{ tasks?: Array<{ count: number }> }> }) => {
       const totalTasks =
         board.columns?.reduce(
-          (sum: number, col: any) => sum + (col.tasks?.[0]?.count || 0),
+          (sum: number, col: { tasks?: Array<{ count: number }> }) => sum + (col.tasks?.[0]?.count || 0),
           0
         ) || 0;
 
