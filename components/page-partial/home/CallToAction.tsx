@@ -12,7 +12,7 @@ export default function CallToAction() {
             Ready to get organized?
           </h2>
           <p className="text-xl text-blue-100">
-            Join thousands of teams who trust Trello Clone to manage their
+            Join thousands of teams who trust 🧀 Kesllo to manage their
             projects.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

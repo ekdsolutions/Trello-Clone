@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Trello Clone",
+  title: "Kesllo",
   description: "A modern project management tool inspired by Trello",
 };
 

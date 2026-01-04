@@ -42,10 +42,9 @@ const Navbar = ({
         <div className="container mx-auto px-4 py-3 sm:py-4 flex items-center justify-between">
           <Link href="/">
             <div className="flex items-center space-x-2">
-              <Trello className="h-6 w-6 sm:w-8 sm:h-8 text-blue-600" />
               <span className="text-xl sm:text-2xl font-bold text-gray-900">
                 {" "}
-                Trello Clone
+                🧀 Kesllo
               </span>
             </div>
           </Link>
@@ -154,7 +153,7 @@ const Navbar = ({
             <Trello className="h-6 w-6 sm:w-8 sm:h-8 text-blue-600" />
             <span className="text-xl sm:text-2xl font-bold text-gray-900">
               {" "}
-              Trello Clone
+              🧀 Kesllo
             </span>
           </div>
         </Link>

@@ -8,7 +8,7 @@ export default function SignUp() {
       <AuthForm
         mode="sign-up"
         title="Create your account"
-        subtitle="Join Trello Clone and start organizing your projects"
+        subtitle="Join 🧀 Kesllo and start organizing your projects"
         redirectUrl="/dashboard"
         alternateUrl="/sign-in"
       />
