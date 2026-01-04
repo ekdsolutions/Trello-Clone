@@ -68,7 +68,6 @@ const Navbar = ({
                 className="flex items-center space-x-1 sm:space-x-2 text-gray-600 hover:text-gray-900 flex-shrink-0"
               >
                 <ArrowLeft className="h-4 w-4 sm:h-6 sm:w-6" />
-                <span className="hidden sm:inline">Back to dashboard</span>
                 <span className="sm:hidden">Back</span>
               </Link>
               <div className="h-4 sm:h-6 w-px bg-gray-300 hidden sm:block" />

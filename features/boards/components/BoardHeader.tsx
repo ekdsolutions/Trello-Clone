@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Grid3X3, List } from "lucide-react";
 import { BoardHeaderSkeleton } from "@/components/skeletons/BoardHeader";
 
 interface BoardHeaderProps {
@@ -9,6 +9,8 @@ interface BoardHeaderProps {
   loading: boolean;
   onCreateColumn: () => void;
   onCreateTask: () => void;
+  viewMode: "cards" | "table";
+  onViewModeChange: (mode: "cards" | "table") => void;
 }
 
 export function BoardHeader({
@@ -16,6 +18,8 @@ export function BoardHeader({
   loading,
   onCreateColumn,
   onCreateTask,
+  viewMode,
+  onViewModeChange,
 }: BoardHeaderProps) {
   if (loading) {
     return <BoardHeaderSkeleton />;
@@ -30,6 +34,24 @@ export function BoardHeader({
         </div>
       </div>
       <div className="flex gap-2">
+        <div className="flex items-center space-x-2 bg-white border p-1 rounded-md">
+          <Button
+            variant={viewMode === "cards" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onViewModeChange("cards")}
+            className="cursor-pointer"
+          >
+            <Grid3X3 />
+          </Button>
+          <Button
+            variant={viewMode === "table" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => onViewModeChange("table")}
+            className="cursor-pointer"
+          >
+            <List />
+          </Button>
+        </div>
         <Button
           variant="outline"
           className="text-gray-500 hover:text-gray-700 cursor-pointer"

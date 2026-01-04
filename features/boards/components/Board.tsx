@@ -61,6 +61,7 @@ export default function Board() {
   const [isDeletingColumn, setIsDeletingColumn] = useState(false);
   const [deletingColumnId, setDeletingColumnId] = useState<string | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
 
   const [filters, setFilters] = useState({
     priority: [] as string[],
@@ -315,6 +316,8 @@ export default function Board() {
             loading={loading}
             onCreateColumn={() => setIsCreatingColumn(true)}
             onCreateTask={() => setIsCreatingTask(true)}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
           />
 
           <DndContext
@@ -332,6 +335,7 @@ export default function Board() {
               onDeleteColumn={requestDeleteColumn}
               onDeleteTask={requestDeleteTask}
               onCreateColumn={() => setIsCreatingColumn(true)}
+              viewMode={viewMode}
             />
             <DragOverlay>
               {activeTask ? <TaskOverlay task={activeTask} /> : null}

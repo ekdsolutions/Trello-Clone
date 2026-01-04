@@ -8,9 +8,9 @@ import { usePlan } from "../hooks/usePlan";
 import { UpgradeDialog } from "./UpgradeDialog";
 import { FilterDialog } from "./FilterDialog";
 import { BoardsSection } from "./BoardsSection";
-import { StatsSection } from "./StatsSection";
-import { DashboardHeader } from "./DashboardHeader";
 import { ErrorState } from "@/components/common/Error";
+import { CreateBoardDialog } from "./CreateBoardDialog";
+import { colors } from "@/features/boards/constants";
 
 export default function Dashboard() {
   const { createBoard, boards, loading, error, refetch } = useBoards();
@@ -18,6 +18,10 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState<boolean>(false);
+  const [isCreateBoardDialogOpen, setIsCreateBoardDialogOpen] = useState<boolean>(false);
+  const [newBoardTitle, setNewBoardTitle] = useState<string>("");
+  const [newBoardDescription, setNewBoardDescription] = useState<string>("");
+  const [newBoardColor, setNewBoardColor] = useState<string>(colors[0]);
   const [filters, setFilters] = useState({
     search: "",
     dateRange: {
@@ -46,15 +50,36 @@ export default function Dashboard() {
     });
   }
 
-  const handleCreateBoard = async () => {
-    console.log("canCreateBoard", canCreateBoard);
+  const handleCreateBoard = () => {
     if (!canCreateBoard) {
       setShowUpgradeDialog(true);
       return;
     }
-    await createBoard({
-      title: "New Board",
-    });
+    // Reset form and open dialog
+    setNewBoardTitle("");
+    setNewBoardDescription("");
+    setNewBoardColor(colors[0]);
+    setIsCreateBoardDialogOpen(true);
+  };
+
+  const handleSubmitCreateBoard = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!newBoardTitle.trim()) return;
+
+    try {
+      await createBoard({
+        title: newBoardTitle.trim(),
+        description: newBoardDescription.trim() || undefined,
+        color: newBoardColor,
+      });
+      setIsCreateBoardDialogOpen(false);
+      // Reset form
+      setNewBoardTitle("");
+      setNewBoardDescription("");
+      setNewBoardColor(colors[0]);
+    } catch (err) {
+      console.error("Failed to create board:", err);
+    }
   };
 
   const handleSearchChange = (value: string) => {
@@ -110,10 +135,6 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <main className="container mx-auto px-4 py-6 sm:py-8">
-        <DashboardHeader onCreateBoard={handleCreateBoard} loading={loading} />
-
-        <StatsSection boards={boards} loading={loading} />
-
         <BoardsSection
           boards={filteredBoards}
           loading={loading}
@@ -138,6 +159,18 @@ export default function Dashboard() {
       <UpgradeDialog
         isOpen={showUpgradeDialog}
         onOpenChange={setShowUpgradeDialog}
+      />
+
+      <CreateBoardDialog
+        isOpen={isCreateBoardDialogOpen}
+        onOpenChange={setIsCreateBoardDialogOpen}
+        title={newBoardTitle}
+        onTitleChange={setNewBoardTitle}
+        description={newBoardDescription}
+        onDescriptionChange={setNewBoardDescription}
+        color={newBoardColor}
+        onColorChange={setNewBoardColor}
+        onSubmit={handleSubmitCreateBoard}
       />
     </div>
   );
