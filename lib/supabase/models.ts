@@ -6,6 +6,9 @@ export interface Board {
   user_id: string;
   created_at: string;
   updated_at: string;
+  total_value: number;
+  upcoming_value: number;
+  sort_order: number;
   totalTasks?: number;
 }
 

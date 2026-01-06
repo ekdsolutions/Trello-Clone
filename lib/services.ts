@@ -26,6 +26,7 @@ export const boardService = {
       `
       )
       .eq("user_id", userId)
+      .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) throw error;
@@ -74,6 +75,28 @@ export const boardService = {
 
     if (error) throw error;
     return data;
+  },
+
+  async reorderBoards(
+    supabase: SupabaseClient,
+    userId: string,
+    boardOrders: { id: string; sort_order: number }[]
+  ): Promise<void> {
+    // Update all boards in a transaction-like manner
+    const updates = boardOrders.map(({ id, sort_order }) =>
+      supabase
+        .from("boards")
+        .update({ sort_order, updated_at: new Date().toISOString() })
+        .eq("id", id)
+        .eq("user_id", userId)
+    );
+
+    const results = await Promise.all(updates);
+    const errors = results.filter((result) => result.error);
+    
+    if (errors.length > 0) {
+      throw new Error(`Failed to reorder boards: ${errors[0].error?.message}`);
+    }
   },
 };
 
@@ -228,11 +251,26 @@ export const boardDataService = {
       userId: string;
     }
   ) {
+    // Get the max sort_order for this user to place new board at the end
+    const { data: existingBoards } = await supabase
+      .from("boards")
+      .select("sort_order")
+      .eq("user_id", boardData.userId)
+      .order("sort_order", { ascending: false })
+      .limit(1);
+
+    const maxSortOrder = existingBoards && existingBoards.length > 0 
+      ? existingBoards[0].sort_order + 1 
+      : 0;
+
     const board = await boardService.createBoard(supabase, {
       title: boardData.title,
       description: boardData.description || null,
       color: boardData.color || "bg-blue-500",
       user_id: boardData.userId,
+      total_value: 0,
+      upcoming_value: 0,
+      sort_order: maxSortOrder,
     });
 
     const defaultColumns = [

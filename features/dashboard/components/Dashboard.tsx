@@ -2,7 +2,7 @@
 
 import Navbar from "@/components/layout/Navbar";
 import { Board } from "@/lib/supabase/models";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useBoards } from "../hooks/useBoards";
 import { usePlan } from "../hooks/usePlan";
 import { UpgradeDialog } from "./UpgradeDialog";
@@ -12,10 +12,29 @@ import { ErrorState } from "@/components/common/Error";
 import { CreateBoardDialog } from "./CreateBoardDialog";
 import { colors } from "@/features/boards/constants";
 
+const VIEW_MODE_STORAGE_KEY = "tasker-view-mode";
+
 export default function Dashboard() {
-  const { createBoard, boards, loading, error, refetch } = useBoards();
+  const { createBoard, boards, loading, error, refetch, reorderBoards, updateBoardValue } = useBoards();
   const { isFreeUser } = usePlan();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  // Load viewMode from localStorage on mount
+  useEffect(() => {
+    const savedViewMode = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
+    if (savedViewMode === "grid" || savedViewMode === "list") {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  // Save viewMode to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
+  }, [viewMode]);
+
+  const handleViewModeChange = (mode: "grid" | "list") => {
+    setViewMode(mode);
+  };
   const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState<boolean>(false);
   const [isCreateBoardDialogOpen, setIsCreateBoardDialogOpen] = useState<boolean>(false);
@@ -139,13 +158,15 @@ export default function Dashboard() {
           boards={filteredBoards}
           loading={loading}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
           onFilterClick={() => setIsFilterOpen(true)}
           onCreateBoard={handleCreateBoard}
           activeFilterCount={activeFilterCount}
           isFreeUser={isFreeUser}
           onSearchChange={handleSearchChange}
           searchValue={filters.search}
+          onReorderBoards={reorderBoards}
+          onBoardValueUpdate={updateBoardValue}
         />
       </main>
       <FilterDialog

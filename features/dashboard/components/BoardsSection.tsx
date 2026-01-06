@@ -14,6 +14,21 @@ import { Input } from "@/components/ui/input";
 import { Board } from "@/lib/supabase/models";
 import { Filter, Grid3X3, List, Plus, Search } from "lucide-react";
 import Link from "next/link";
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { SortableBoardRow } from "./SortableBoardRow";
+import { useState, useEffect } from "react";
 
 interface BoardsSectionProps {
   boards: Board[];
@@ -26,6 +41,8 @@ interface BoardsSectionProps {
   isFreeUser: boolean;
   onSearchChange: (value: string) => void;
   searchValue: string;
+  onReorderBoards?: (newOrder: { id: string; sort_order: number }[]) => void;
+  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number }) => void;
 }
 
 export function BoardsSection({
@@ -39,10 +56,50 @@ export function BoardsSection({
   isFreeUser,
   onSearchChange,
   searchValue,
+  onReorderBoards,
+  onBoardValueUpdate,
 }: BoardsSectionProps) {
+  const [localBoards, setLocalBoards] = useState(boards);
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
+
+  // Update local boards when prop changes
+  useEffect(() => {
+    setLocalBoards(boards);
+  }, [boards]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = localBoards.findIndex((board) => board.id === active.id);
+      const newIndex = localBoards.findIndex((board) => board.id === over.id);
+
+      const newBoards = arrayMove(localBoards, oldIndex, newIndex);
+      setLocalBoards(newBoards);
+
+      // Update sort orders
+      const newOrder = newBoards.map((board, index) => ({
+        id: board.id,
+        sort_order: index,
+      }));
+
+      if (onReorderBoards) {
+        onReorderBoards(newOrder);
+      }
+    }
+  };
+
   if (loading) {
     return <BoardsSkeleton />;
   }
+
+  const displayBoards = localBoards;
   return (
     <div className="mb-6 sm:mb-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 space-y-4 sm:space-y-0">
@@ -108,11 +165,11 @@ export function BoardsSection({
       </div>
 
       {/* Boards Grids/List */}
-      {boards.length === 0 ? (
+      {displayBoards.length === 0 ? (
         <div>No boards yet</div>
       ) : viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {boards.map((board, key) => (
+          {displayBoards.map((board, key) => (
             <Link href={`/boards/${board.id}`} key={key}>
               <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
                 <CardHeader className="pb-3">
@@ -130,6 +187,30 @@ export function BoardsSection({
                   <CardDescription className="text-sm mb-4">
                     {board.description}
                   </CardDescription>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Total Value:</span>
+                      <span className="font-medium">
+                        {new Intl.NumberFormat("he-IL", {
+                          style: "currency",
+                          currency: "ILS",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(board.total_value || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Upcoming:</span>
+                      <span className="font-medium">
+                        {new Intl.NumberFormat("he-IL", {
+                          style: "currency",
+                          currency: "ILS",
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                        }).format(board.upcoming_value || 0)}
+                      </span>
+                    </div>
+                  </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-xs text-gray-500 space-y-1 sm:space-y-0">
                     <span>
                       Created {new Date(board.created_at).toLocaleDateString()}
@@ -156,78 +237,67 @@ export function BoardsSection({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                  Board
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden sm:table-cell">
-                  Description
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden md:table-cell">
-                  Tasks
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                  Created
-                </th>
-                <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                  Updated
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {boards.map((board, key) => (
-                <tr
-                  key={key}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <td className="py-4 px-4">
-                    <Link href={`/boards/${board.id}`}>
-                      <div className="flex items-center gap-3 cursor-pointer group">
-                        <div className={`w-4 h-4 rounded flex-shrink-0 ${board.color}`} />
-                        <div>
-                          <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                            {board.title}
-                          </div>
-                          <div className="text-xs text-gray-500 sm:hidden mt-1">
-                            {board.totalTasks ?? 0} tasks
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600 hidden sm:table-cell">
-                    {board.description || (
-                      <span className="text-gray-400 italic">No description</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600 hidden md:table-cell">
-                    {board.totalTasks ?? 0}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
-                    {new Date(board.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
-                    {new Date(board.updated_at).toLocaleDateString()}
-                  </td>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-8">
+                    {/* Drag handle column */}
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
+                    Board
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden sm:table-cell">
+                    Description
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden md:table-cell">
+                    Tasks
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                    Total Value
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                    Upcoming
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                    Created
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                    Updated
+                  </th>
                 </tr>
-              ))}
-              <tr>
-                <td colSpan={5} className="py-4 px-4">
-                  <div
-                    className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group rounded-lg p-6 flex flex-col items-center justify-center"
-                    onClick={onCreateBoard}
-                  >
-                    <Plus className="h-6 w-6 text-gray-400 group-hover:text-blue-600 mb-2" />
-                    <p className="text-sm text-gray-600 font-medium group-hover:text-blue-600">
-                      Create new board
-                    </p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                <SortableContext
+                  items={displayBoards.map((b) => b.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {displayBoards.map((board) => (
+                    <SortableBoardRow
+                      key={board.id}
+                      board={board}
+                      onValueUpdate={onBoardValueUpdate || (() => {})}
+                    />
+                  ))}
+                </SortableContext>
+              </tbody>
+            </table>
+          </DndContext>
+          <div className="mt-4">
+            <div
+              className="border-2 border-dashed border-gray-300 hover:border-blue-400 transition-colors cursor-pointer group rounded-lg p-6 flex flex-col items-center justify-center"
+              onClick={onCreateBoard}
+            >
+              <Plus className="h-6 w-6 text-gray-400 group-hover:text-blue-600 mb-2" />
+              <p className="text-sm text-gray-600 font-medium group-hover:text-blue-600">
+                Create new board
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>

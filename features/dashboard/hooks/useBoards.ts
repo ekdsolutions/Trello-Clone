@@ -50,9 +50,49 @@ export function useBoards() {
           userId: user.id,
         }
       );
-      setBoards((prev) => [newBoard, ...prev]);
+      await loadBoards(); // Reload to get proper sort order
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create board.");
+    }
+  }
+
+  async function reorderBoards(newOrder: { id: string; sort_order: number }[]) {
+    if (!user || !supabase) return;
+
+    try {
+      await boardService.reorderBoards(supabase, user.id, newOrder);
+      // Update local state optimistically
+      const orderMap = new Map(newOrder.map((item) => [item.id, item.sort_order]));
+      setBoards((prev) =>
+        [...prev].sort((a, b) => {
+          const orderA = orderMap.get(a.id) ?? a.sort_order;
+          const orderB = orderMap.get(b.id) ?? b.sort_order;
+          return orderA - orderB;
+        })
+      );
+    } catch (err) {
+      console.error("Failed to reorder boards:", err);
+      setError(err instanceof Error ? err.message : "Failed to reorder boards.");
+      await loadBoards(); // Reload on error
+    }
+  }
+
+  async function updateBoardValue(
+    boardId: string,
+    updates: { total_value?: number; upcoming_value?: number }
+  ) {
+    if (!user || !supabase) return;
+
+    try {
+      await boardService.updateBoard(supabase, boardId, updates);
+      setBoards((prev) =>
+        prev.map((board) =>
+          board.id === boardId ? { ...board, ...updates } : board
+        )
+      );
+    } catch (err) {
+      console.error("Failed to update board value:", err);
+      setError(err instanceof Error ? err.message : "Failed to update board value.");
     }
   }
 
@@ -60,5 +100,5 @@ export function useBoards() {
     loadBoards();
   };
 
-  return { boards, loading, error, createBoard, refetch };
+  return { boards, loading, error, createBoard, refetch, reorderBoards, updateBoardValue };
 }
