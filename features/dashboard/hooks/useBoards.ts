@@ -79,7 +79,7 @@ export function useBoards() {
 
   async function updateBoardValue(
     boardId: string,
-    updates: { total_value?: number; upcoming_value?: number; received_value?: number; retainer_y?: number }
+    updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; label_text?: string | null; label_color?: string }
   ) {
     if (!user || !supabase) return;
 

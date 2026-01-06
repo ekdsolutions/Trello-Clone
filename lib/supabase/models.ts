@@ -1,7 +1,8 @@
 export interface Board {
   id: string;
   title: string;
-  description: string | null;
+  label_text: string | null;
+  label_color: string;
   color: string;
   user_id: string;
   created_at: string;
@@ -9,7 +10,8 @@ export interface Board {
   total_value: number;
   upcoming_value: number;
   received_value: number;
-  retainer_y: number;
+  annual: number;
+  started_date: string | null;
   sort_order: number;
   totalTasks?: number;
 }

@@ -7,13 +7,15 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { GripVertical } from "lucide-react";
+import { LabelEditor } from "./LabelEditor";
 
 interface SortableBoardRowProps {
   board: Board;
-  onValueUpdate: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; retainer_y?: number }) => void;
+  existingLabels: Array<{ text: string; color: string }>;
+  onValueUpdate: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; label_text?: string | null; label_color?: string }) => void;
 }
 
-export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps) {
+export function SortableBoardRow({ board, existingLabels, onValueUpdate }: SortableBoardRowProps) {
   const {
     attributes,
     listeners,
@@ -26,11 +28,14 @@ export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps
   const [totalValue, setTotalValue] = useState<string>(board.total_value?.toString() || "0");
   const [upcomingValue, setUpcomingValue] = useState<string>(board.upcoming_value?.toString() || "0");
   const [receivedValue, setReceivedValue] = useState<string>(board.received_value?.toString() || "0");
-  const [retainerY, setRetainerY] = useState<string>(board.retainer_y?.toString() || "0");
+  const [annualValue, setAnnualValue] = useState<string>(board.annual?.toString() || "0");
+  const [startedDate, setStartedDate] = useState<string>(board.started_date ? new Date(board.started_date).toISOString().split('T')[0] : "");
   const [isEditingTotal, setIsEditingTotal] = useState(false);
   const [isEditingUpcoming, setIsEditingUpcoming] = useState(false);
   const [isEditingReceived, setIsEditingReceived] = useState(false);
-  const [isEditingRetainer, setIsEditingRetainer] = useState(false);
+  const [isEditingAnnual, setIsEditingAnnual] = useState(false);
+  const [isEditingStarted, setIsEditingStarted] = useState(false);
+  const [isEditingLabel, setIsEditingLabel] = useState(false);
 
   // Sync local state with board prop changes (when not editing)
   useEffect(() => {
@@ -52,10 +57,16 @@ export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps
   }, [board.received_value, isEditingReceived]);
 
   useEffect(() => {
-    if (!isEditingRetainer) {
-      setRetainerY(board.retainer_y?.toString() || "0");
+    if (!isEditingAnnual) {
+      setAnnualValue(board.annual?.toString() || "0");
     }
-  }, [board.retainer_y, isEditingRetainer]);
+  }, [board.annual, isEditingAnnual]);
+
+  useEffect(() => {
+    if (!isEditingStarted) {
+      setStartedDate(board.started_date ? new Date(board.started_date).toISOString().split('T')[0] : "");
+    }
+  }, [board.started_date, isEditingStarted]);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -120,13 +131,23 @@ export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps
     }
   };
 
-  const handleRetainerYBlur = () => {
-    setIsEditingRetainer(false);
-    const numValue = parseFloat(retainerY) || 0;
-    if (numValue !== board.retainer_y) {
-      onValueUpdate(board.id, { retainer_y: numValue });
+  const handleAnnualBlur = () => {
+    setIsEditingAnnual(false);
+    const numValue = parseFloat(annualValue) || 0;
+    if (numValue !== board.annual) {
+      onValueUpdate(board.id, { annual: numValue });
     } else {
-      setRetainerY(board.retainer_y?.toString() || "0");
+      setAnnualValue(board.annual?.toString() || "0");
+    }
+  };
+
+  const handleStartedDateBlur = () => {
+    setIsEditingStarted(false);
+    const dateValue = startedDate || null;
+    if (dateValue !== (board.started_date ? new Date(board.started_date).toISOString().split('T')[0] : "")) {
+      onValueUpdate(board.id, { started_date: dateValue || null });
+    } else {
+      setStartedDate(board.started_date ? new Date(board.started_date).toISOString().split('T')[0] : "");
     }
   };
 
@@ -139,13 +160,27 @@ export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps
     }
   };
 
-  const handleRetainerYKeyDown = (e: React.KeyboardEvent) => {
+  const handleAnnualKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      handleRetainerYBlur();
+      handleAnnualBlur();
     } else if (e.key === "Escape") {
-      setRetainerY(board.retainer_y?.toString() || "0");
-      setIsEditingRetainer(false);
+      setAnnualValue(board.annual?.toString() || "0");
+      setIsEditingAnnual(false);
     }
+  };
+
+  const handleStartedDateKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleStartedDateBlur();
+    } else if (e.key === "Escape") {
+      setStartedDate(board.started_date ? new Date(board.started_date).toISOString().split('T')[0] : "");
+      setIsEditingStarted(false);
+    }
+  };
+
+  const handleLabelSave = (text: string, color: string) => {
+    setIsEditingLabel(false);
+    onValueUpdate(board.id, { label_text: text || null, label_color: color });
   };
 
   return (
@@ -171,20 +206,34 @@ export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps
               <div className="font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
                 {board.title}
               </div>
-              <div className="text-xs text-gray-500 sm:hidden mt-1">
-                {board.totalTasks ?? 0} tasks
-              </div>
             </div>
           </div>
         </Link>
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden sm:table-cell">
-        {board.description || (
-          <span className="text-gray-400 italic">No description</span>
+      <td className="py-4 px-4 text-sm text-gray-600 hidden sm:table-cell relative">
+        {isEditingLabel ? (
+          <LabelEditor
+            labelText={board.label_text}
+            labelColor={board.label_color || "bg-gray-500"}
+            existingLabels={existingLabels}
+            onSave={handleLabelSave}
+            onCancel={() => setIsEditingLabel(false)}
+          />
+        ) : (
+          <div
+            onClick={() => setIsEditingLabel(true)}
+            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded inline-flex items-center gap-2 min-w-[100px]"
+          >
+            {board.label_text ? (
+              <>
+                <div className={`w-3 h-3 rounded ${board.label_color || "bg-gray-500"}`} />
+                <span>{board.label_text}</span>
+              </>
+            ) : (
+              <span className="text-gray-400 italic">No label</span>
+            )}
+          </div>
         )}
-      </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden md:table-cell">
-        {board.totalTasks ?? 0}
       </td>
       <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingUpcoming ? (
@@ -247,30 +296,46 @@ export function SortableBoardRow({ board, onValueUpdate }: SortableBoardRowProps
         )}
       </td>
       <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
-        {isEditingRetainer ? (
+        {isEditingAnnual ? (
           <Input
             type="number"
-            value={retainerY}
-            onChange={(e) => setRetainerY(e.target.value)}
-            onBlur={handleRetainerYBlur}
-            onKeyDown={handleRetainerYKeyDown}
+            value={annualValue}
+            onChange={(e) => setAnnualValue(e.target.value)}
+            onBlur={handleAnnualBlur}
+            onKeyDown={handleAnnualKeyDown}
             className="w-24 h-8"
             autoFocus
           />
         ) : (
           <div
-            onClick={() => setIsEditingRetainer(true)}
+            onClick={() => setIsEditingAnnual(true)}
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[80px] inline-block"
           >
-            {formatCurrency(board.retainer_y || 0)}
+            {formatCurrency(board.annual || 0)}
           </div>
         )}
       </td>
       <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
-        {new Date(board.created_at).toLocaleDateString()}
-      </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
-        {new Date(board.updated_at).toLocaleDateString()}
+        {isEditingStarted ? (
+          <Input
+            type="date"
+            value={startedDate}
+            onChange={(e) => setStartedDate(e.target.value)}
+            onBlur={handleStartedDateBlur}
+            onKeyDown={handleStartedDateKeyDown}
+            className="w-32 h-8"
+            autoFocus
+          />
+        ) : (
+          <div
+            onClick={() => setIsEditingStarted(true)}
+            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[100px] inline-block"
+          >
+            {board.started_date
+              ? new Date(board.started_date).toLocaleDateString()
+              : "Not set"}
+          </div>
+        )}
       </td>
     </tr>
   );

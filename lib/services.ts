@@ -265,13 +265,15 @@ export const boardDataService = {
 
     const board = await boardService.createBoard(supabase, {
       title: boardData.title,
-      description: boardData.description || null,
+      label_text: boardData.description || null,
+      label_color: "bg-gray-500",
       color: boardData.color || "bg-blue-500",
       user_id: boardData.userId,
       total_value: 0,
       upcoming_value: 0,
       received_value: 0,
-      retainer_y: 0,
+      annual: 0,
+      started_date: null,
       sort_order: maxSortOrder,
     });
 

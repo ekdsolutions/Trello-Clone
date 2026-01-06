@@ -42,7 +42,7 @@ interface BoardsSectionProps {
   onSearchChange: (value: string) => void;
   searchValue: string;
   onReorderBoards?: (newOrder: { id: string; sort_order: number }[]) => void;
-  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; retainer_y?: number }) => void;
+  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; label_text?: string | null; label_color?: string }) => void;
 }
 
 export function BoardsSection({
@@ -252,10 +252,7 @@ export function BoardsSection({
                     Board
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden sm:table-cell">
-                    Description
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden md:table-cell">
-                    Tasks
+                    Label
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
                     Upcoming
@@ -267,13 +264,10 @@ export function BoardsSection({
                     Total
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Retainer/y
+                    Annual
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Created
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Updated
+                    Started
                   </th>
                 </tr>
               </thead>
@@ -282,13 +276,30 @@ export function BoardsSection({
                   items={displayBoards.map((b) => b.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {displayBoards.map((board) => (
-                    <SortableBoardRow
-                      key={board.id}
-                      board={board}
-                      onValueUpdate={onBoardValueUpdate || (() => {})}
-                    />
-                  ))}
+                  {displayBoards.map((board) => {
+                    // Get unique existing labels from all boards (excluding current board)
+                    const existingLabels = displayBoards
+                      .filter((b) => b.id !== board.id && b.label_text)
+                      .map((b) => ({
+                        text: b.label_text!,
+                        color: b.label_color || "bg-gray-500",
+                      }))
+                      .filter(
+                        (label, index, self) =>
+                          index ===
+                          self.findIndex(
+                            (l) => l.text === label.text && l.color === label.color
+                          )
+                      );
+                    return (
+                      <SortableBoardRow
+                        key={board.id}
+                        board={board}
+                        existingLabels={existingLabels}
+                        onValueUpdate={onBoardValueUpdate || (() => {})}
+                      />
+                    );
+                  })}
                 </SortableContext>
               </tbody>
             </table>
