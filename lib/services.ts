@@ -353,7 +353,7 @@ export const labelService = {
   },
 
   async getOrCreateLabel(supabase: SupabaseClient, userId: string, text: string, color: string): Promise<Label> {
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("labels")
       .select("*")
       .eq("user_id", userId)
