@@ -9,7 +9,6 @@ interface FilterDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   filters: {
-    search: string;
     dateRange: {
       start: string | null;
       end: string | null;
@@ -35,23 +34,9 @@ export function FilterDialog({
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       title="Filter Boards"
-      description="Filter boards by title, date, or task count."
+      description="Filter boards by date or task count."
     >
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>Search</Label>
-          <Input
-            id="search"
-            placeholder="Search board titles..."
-            value={filters.search}
-            onChange={(e) =>
-              onFiltersChange((prev: any) => ({
-                ...prev,
-                search: e.target.value,
-              }))
-            }
-          />
-        </div>
         <div className="space-y-2">
           <Label>Date Range</Label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

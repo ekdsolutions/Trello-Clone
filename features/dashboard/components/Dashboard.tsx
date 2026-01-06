@@ -61,7 +61,6 @@ export default function Dashboard() {
   const [isEditBoardDialogOpen, setIsEditBoardDialogOpen] = useState<boolean>(false);
   const [deletingBoardId, setDeletingBoardId] = useState<string | null>(null);
   const [filters, setFilters] = useState({
-    search: "",
     dateRange: {
       start: null as string | null,
       end: null as string | null,
@@ -76,7 +75,6 @@ export default function Dashboard() {
 
   function clearFilters() {
     setFilters({
-      search: "",
       dateRange: {
         start: null as string | null,
         end: null as string | null,
@@ -167,18 +165,8 @@ export default function Dashboard() {
     setIsEditBoardDialogOpen(true);
   };
 
-  const handleSearchChange = (value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      search: value,
-    }));
-  };
-
   const filteredBoards = boards.filter((board: Board) => {
     const taskCount = board.totalTasks ?? 0;
-    const matchesSearch = board.title
-      .toLowerCase()
-      .includes(filters.search.toLowerCase());
 
     const matchesDateRange =
       (!filters.dateRange.start ||
@@ -189,11 +177,10 @@ export default function Dashboard() {
       (!filters.taskCount.min || taskCount >= filters.taskCount.min) &&
       (!filters.taskCount.max || taskCount <= filters.taskCount.max);
 
-    return matchesSearch && matchesDateRange && matchesTaskCount;
+    return matchesDateRange && matchesTaskCount;
   });
 
   const activeFilterCount = [
-    filters.search ? 1 : 0,
     filters.dateRange.start ? 1 : 0,
     filters.dateRange.end ? 1 : 0,
     filters.taskCount.min !== null ? 1 : 0,
@@ -229,8 +216,6 @@ export default function Dashboard() {
           onCreateBoard={handleCreateBoard}
           activeFilterCount={activeFilterCount}
           isFreeUser={isFreeUser}
-          onSearchChange={handleSearchChange}
-          searchValue={filters.search}
           onReorderBoards={reorderBoards}
           onBoardValueUpdate={updateBoardValue as any}
           allLabels={labels}
@@ -283,7 +268,7 @@ export default function Dashboard() {
         onSubmit={handleSubmitEditBoard}
       />
 
-      <Dialog open={!!deletingBoardId} onOpenChange={(open) => !open && setDeletingBoardId(null)}>
+      <Dialog open={!!deletingBoardId} onOpenChange={(open: boolean) => !open && setDeletingBoardId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete Board</DialogTitle>
