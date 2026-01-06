@@ -185,7 +185,14 @@ export function BoardsSection({
                     {board.title}
                   </CardTitle>
                   <CardDescription className="text-sm mb-4">
-                    {board.description}
+                    {board.label_text ? (
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded ${board.label_color || "bg-gray-500"}`} />
+                        <span>{board.label_text}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic">No label</span>
+                    )}
                   </CardDescription>
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
