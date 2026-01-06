@@ -1,7 +1,7 @@
 "use client";
 
-import { boardDataService, boardService } from "@/lib/services";
-import { Board } from "@/lib/supabase/models";
+import { boardDataService, boardService, labelService } from "@/lib/services";
+import { Board, Label } from "@/lib/supabase/models";
 import { useSupabase } from "@/providers/SupabaseProvider";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
@@ -10,12 +10,14 @@ export function useBoards() {
   const { user } = useUser();
   const { supabase, isLoaded } = useSupabase();
   const [boards, setBoards] = useState<Board[]>([]);
+  const [labels, setLabels] = useState<Label[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && isLoaded && supabase) {
       loadBoards();
+      loadLabels();
     }
   }, [user, isLoaded]);
 
@@ -77,9 +79,20 @@ export function useBoards() {
     }
   }
 
+  async function loadLabels() {
+    if (!user || !supabase) return;
+
+    try {
+      const data = await labelService.getLabels(supabase, user.id);
+      setLabels(data);
+    } catch (err) {
+      console.error("Failed to load labels:", err);
+    }
+  }
+
   async function updateBoardValue(
     boardId: string,
-    updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; label_text?: string | null; label_color?: string }
+    updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null }
   ) {
     if (!user || !supabase) return;
 
@@ -96,9 +109,50 @@ export function useBoards() {
     }
   }
 
+  async function updateBoardLabels(boardId: string, labelIds: string[]) {
+    if (!user || !supabase) return;
+
+    try {
+      await labelService.updateBoardLabels(supabase, boardId, labelIds);
+      await loadBoards(); // Reload to get updated labels
+    } catch (err) {
+      console.error("Failed to update board labels:", err);
+      setError(err instanceof Error ? err.message : "Failed to update board labels.");
+    }
+  }
+
+  async function createLabel(text: string, color: string): Promise<Label> {
+    if (!user || !supabase) throw new Error("User not authenticated");
+
+    try {
+      const newLabel = await labelService.createLabel(supabase, {
+        user_id: user.id,
+        text,
+        color,
+      });
+      setLabels((prev) => [newLabel, ...prev]);
+      return newLabel;
+    } catch (err) {
+      console.error("Failed to create label:", err);
+      throw err;
+    }
+  }
+
   const refetch = () => {
     loadBoards();
+    loadLabels();
   };
 
-  return { boards, loading, error, createBoard, refetch, reorderBoards, updateBoardValue };
+  return { 
+    boards, 
+    labels,
+    loading, 
+    error, 
+    createBoard, 
+    refetch, 
+    reorderBoards, 
+    updateBoardValue,
+    updateBoardLabels,
+    createLabel,
+  };
 }

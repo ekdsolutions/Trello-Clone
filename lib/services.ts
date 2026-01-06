@@ -1,4 +1,4 @@
-import { Board, Column, Task } from "./supabase/models";
+import { Board, Column, Task, Label } from "./supabase/models";
 import { SupabaseClient } from "@supabase/supabase-js";
 
 export const boardService = {
@@ -22,6 +22,14 @@ export const boardService = {
         *,
         columns (
           tasks ( count )
+        ),
+        board_labels (
+          label:labels (
+            id,
+            text,
+            color,
+            created_at
+          )
         )
       `
       )
@@ -31,16 +39,22 @@ export const boardService = {
 
     if (error) throw error;
 
-    return (data || []).map((board: Board & { columns?: Array<{ tasks?: Array<{ count: number }> }> }) => {
+    return (data || []).map((board: Board & { 
+      columns?: Array<{ tasks?: Array<{ count: number }> }>;
+      board_labels?: Array<{ label: Label }>;
+    }) => {
       const totalTasks =
         board.columns?.reduce(
           (sum: number, col: { tasks?: Array<{ count: number }> }) => sum + (col.tasks?.[0]?.count || 0),
           0
         ) || 0;
 
-      const { columns, ...boardWithoutColumns } = board;
+      const labels = board.board_labels?.map(bl => bl.label).filter(Boolean) || [];
+
+      const { columns, board_labels, ...boardWithoutColumns } = board;
       return {
         ...boardWithoutColumns,
+        labels,
         totalTasks,
       };
     });
@@ -295,5 +309,53 @@ export const boardDataService = {
     );
 
     return board;
+  },
+};
+
+export const labelService = {
+  async getLabels(supabase: SupabaseClient, userId: string): Promise<Label[]> {
+    const { data, error } = await supabase
+      .from("labels")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  },
+
+  async createLabel(
+    supabase: SupabaseClient,
+    label: { user_id: string; text: string; color: string }
+  ): Promise<Label> {
+    const { data, error } = await supabase
+      .from("labels")
+      .insert(label)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  },
+
+  async updateBoardLabels(
+    supabase: SupabaseClient,
+    boardId: string,
+    labelIds: string[]
+  ): Promise<void> {
+    // Delete existing board_labels
+    await supabase
+      .from("board_labels")
+      .delete()
+      .eq("board_id", boardId);
+
+    // Insert new board_labels
+    if (labelIds.length > 0) {
+      const { error } = await supabase
+        .from("board_labels")
+        .insert(labelIds.map(labelId => ({ board_id: boardId, label_id: labelId })));
+
+      if (error) throw error;
+    }
   },
 };

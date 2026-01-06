@@ -15,7 +15,7 @@ import { colors } from "@/features/boards/constants";
 const VIEW_MODE_STORAGE_KEY = "tasker-view-mode";
 
 export default function Dashboard() {
-  const { createBoard, boards, loading, error, refetch, reorderBoards, updateBoardValue } = useBoards();
+  const { createBoard, boards, labels, loading, error, refetch, reorderBoards, updateBoardValue, updateBoardLabels, createLabel } = useBoards();
   const { isFreeUser } = usePlan();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -167,6 +167,9 @@ export default function Dashboard() {
           searchValue={filters.search}
           onReorderBoards={reorderBoards}
           onBoardValueUpdate={updateBoardValue}
+          allLabels={labels}
+          onLabelsUpdate={updateBoardLabels}
+          onCreateLabel={createLabel}
         />
       </main>
       <FilterDialog

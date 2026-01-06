@@ -1,3 +1,11 @@
+export interface Label {
+  id: string;
+  user_id: string;
+  text: string;
+  color: string;
+  created_at: string;
+}
+
 export interface Board {
   id: string;
   title: string;
@@ -13,6 +21,7 @@ export interface Board {
   annual: number;
   started_date: string | null;
   sort_order: number;
+  labels?: Label[];
   totalTasks?: number;
 }
 

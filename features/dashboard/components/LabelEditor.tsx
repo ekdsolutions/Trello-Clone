@@ -3,39 +3,33 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { colors } from "@/features/boards/constants";
-
-interface Label {
-  text: string;
-  color: string;
-}
+import { Label } from "@/lib/supabase/models";
+import { X } from "lucide-react";
 
 interface LabelEditorProps {
-  labelText: string | null;
-  labelColor: string;
-  existingLabels: Label[];
-  onSave: (text: string, color: string) => void;
+  boardLabels: Label[];
+  allLabels: Label[];
+  onSave: (labelIds: string[]) => void;
   onCancel: () => void;
+  onCreateLabel: (text: string, color: string) => Promise<Label>;
 }
 
 export function LabelEditor({
-  labelText,
-  labelColor,
-  existingLabels,
+  boardLabels,
+  allLabels,
   onSave,
   onCancel,
+  onCreateLabel,
 }: LabelEditorProps) {
-  const [text, setText] = useState(labelText || "");
-  const [color, setColor] = useState(labelColor || "bg-gray-500");
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(
+    new Set(boardLabels.map((l) => l.id))
+  );
+  const [newLabelText, setNewLabelText] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState("bg-gray-500");
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showNewLabelForm, setShowNewLabelForm] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,104 +47,185 @@ export function LabelEditor({
     };
   }, [onCancel]);
 
-  const filteredLabels = existingLabels.filter(
-    (label) =>
-      label.text.toLowerCase().includes(text.toLowerCase()) && text.length > 0
-  );
-
-  const handleSelectLabel = (label: Label) => {
-    setText(label.text);
-    setColor(label.color);
-    onSave(label.text, label.color);
+  const toggleLabel = (labelId: string) => {
+    const newSet = new Set(selectedLabelIds);
+    if (newSet.has(labelId)) {
+      newSet.delete(labelId);
+    } else {
+      newSet.add(labelId);
+    }
+    setSelectedLabelIds(newSet);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onSave(text, color);
-    } else if (e.key === "Escape") {
-      onCancel();
+  const handleCreateLabel = async () => {
+    if (!newLabelText.trim()) return;
+    setIsCreating(true);
+    try {
+      const newLabel = await onCreateLabel(newLabelText.trim(), newLabelColor);
+      setSelectedLabelIds(new Set([...selectedLabelIds, newLabel.id]));
+      setNewLabelText("");
+      setShowNewLabelForm(false);
+    } catch (err) {
+      console.error("Failed to create label:", err);
+    } finally {
+      setIsCreating(false);
     }
   };
+
+  const handleSave = () => {
+    onSave(Array.from(selectedLabelIds));
+  };
+
+  const selectedLabels = allLabels.filter((l) => selectedLabelIds.has(l.id));
+  const unselectedLabels = allLabels.filter((l) => !selectedLabelIds.has(l.id));
 
   return (
     <div
       ref={containerRef}
-      className="absolute z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-3 min-w-[300px]"
+      className="absolute z-50 bg-white border border-gray-300 rounded-lg shadow-lg p-4 min-w-[400px] max-w-[500px]"
     >
-      <div className="space-y-3">
-        <div className="relative">
-          <Input
-            ref={inputRef}
-            type="text"
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setShowSuggestions(e.target.value.length > 0);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder="Enter label text..."
-            className="w-full"
-          />
-          {showSuggestions && filteredLabels.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto z-10">
-              {filteredLabels.map((label, idx) => (
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Selected Labels
+          </h3>
+          {selectedLabels.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {selectedLabels.map((label) => (
                 <button
-                  key={idx}
+                  key={label.id}
                   type="button"
-                  onClick={() => handleSelectLabel(label)}
-                  className="w-full text-left px-3 py-2 hover:bg-gray-100 flex items-center gap-2"
+                  onClick={() => toggleLabel(label.id)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
-                  <div className={`w-3 h-3 rounded ${label.color}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full ${label.color}`} />
+                  <span>{label.text}</span>
+                  <X className="w-3 h-3" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">No labels selected</p>
+          )}
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">
+            Quick Select
+          </h3>
+          {unselectedLabels.length > 0 ? (
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+              {unselectedLabels.map((label) => (
+                <button
+                  key={label.id}
+                  type="button"
+                  onClick={() => toggleLabel(label.id)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  <div className={`w-2.5 h-2.5 rounded-full ${label.color}`} />
                   <span>{label.text}</span>
                 </button>
               ))}
             </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">No other labels available</p>
           )}
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-600">Color:</span>
+        <div className="border-t pt-3">
+          {!showNewLabelForm ? (
             <button
               type="button"
-              onClick={() => setShowColorPicker(!showColorPicker)}
-              className="flex items-center gap-2 text-sm"
+              onClick={() => setShowNewLabelForm(true)}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
             >
-              <div className={`w-4 h-4 rounded ${color}`} />
-              {showColorPicker ? "Hide" : "Change"}
+              + Create New Label
             </button>
-          </div>
-          {showColorPicker && (
-            <div className="grid grid-cols-6 gap-2">
-              {colors.map((colorClass) => (
-                <button
-                  key={colorClass}
-                  type="button"
-                  onClick={() => setColor(colorClass)}
-                  className={`w-8 h-8 rounded-full ${colorClass} ${
-                    colorClass === color
-                      ? "ring-2 ring-offset-2 ring-gray-900"
-                      : ""
-                  }`}
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <Input
+                  type="text"
+                  value={newLabelText}
+                  onChange={(e) => setNewLabelText(e.target.value)}
+                  placeholder="Label text..."
+                  className="w-full"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleCreateLabel();
+                    } else if (e.key === "Escape") {
+                      setShowNewLabelForm(false);
+                      setNewLabelText("");
+                    }
+                  }}
+                  autoFocus
                 />
-              ))}
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-600">Color:</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowColorPicker(!showColorPicker)}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <div className={`w-4 h-4 rounded ${newLabelColor}`} />
+                    {showColorPicker ? "Hide" : "Change"}
+                  </button>
+                </div>
+                {showColorPicker && (
+                  <div className="grid grid-cols-6 gap-2">
+                    {colors.map((colorClass) => (
+                      <button
+                        key={colorClass}
+                        type="button"
+                        onClick={() => setNewLabelColor(colorClass)}
+                        className={`w-6 h-6 rounded-full ${colorClass} ${
+                          colorClass === newLabelColor
+                            ? "ring-2 ring-offset-1 ring-gray-900"
+                            : ""
+                        }`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleCreateLabel}
+                  disabled={!newLabelText.trim() || isCreating}
+                  className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isCreating ? "Creating..." : "Create"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowNewLabelForm(false);
+                    setNewLabelText("");
+                  }}
+                  className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-2 border-t">
           <button
             type="button"
             onClick={onCancel}
-            className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
+            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800"
           >
             Cancel
           </button>
           <button
             type="button"
-            onClick={() => onSave(text, color)}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+            onClick={handleSave}
+            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
           >
             Save
           </button>
@@ -159,4 +234,3 @@ export function LabelEditor({
     </div>
   );
 }
-

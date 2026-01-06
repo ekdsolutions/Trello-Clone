@@ -1,6 +1,6 @@
 "use client";
 
-import { Board } from "@/lib/supabase/models";
+import { Board, Label } from "@/lib/supabase/models";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
@@ -11,11 +11,13 @@ import { LabelEditor } from "./LabelEditor";
 
 interface SortableBoardRowProps {
   board: Board;
-  existingLabels: Array<{ text: string; color: string }>;
-  onValueUpdate: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; label_text?: string | null; label_color?: string }) => void;
+  allLabels: Label[];
+  onValueUpdate: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null }) => void;
+  onLabelsUpdate: (boardId: string, labelIds: string[]) => Promise<void>;
+  onCreateLabel: (text: string, color: string) => Promise<Label>;
 }
 
-export function SortableBoardRow({ board, existingLabels, onValueUpdate }: SortableBoardRowProps) {
+export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpdate, onCreateLabel }: SortableBoardRowProps) {
   const {
     attributes,
     listeners,
@@ -178,9 +180,9 @@ export function SortableBoardRow({ board, existingLabels, onValueUpdate }: Sorta
     }
   };
 
-  const handleLabelSave = (text: string, color: string) => {
+  const handleLabelSave = async (labelIds: string[]) => {
     setIsEditingLabel(false);
-    onValueUpdate(board.id, { label_text: text || null, label_color: color });
+    await onLabelsUpdate(board.id, labelIds);
   };
 
   return (
@@ -213,24 +215,31 @@ export function SortableBoardRow({ board, existingLabels, onValueUpdate }: Sorta
       <td className="py-4 px-4 text-sm text-gray-600 hidden sm:table-cell relative">
         {isEditingLabel ? (
           <LabelEditor
-            labelText={board.label_text}
-            labelColor={board.label_color || "bg-gray-500"}
-            existingLabels={existingLabels}
+            boardLabels={board.labels || []}
+            allLabels={allLabels}
             onSave={handleLabelSave}
             onCancel={() => setIsEditingLabel(false)}
+            onCreateLabel={onCreateLabel}
           />
         ) : (
           <div
             onClick={() => setIsEditingLabel(true)}
-            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded inline-flex items-center gap-2 min-w-[100px]"
+            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[100px]"
           >
-            {board.label_text ? (
-              <>
-                <div className={`w-3 h-3 rounded ${board.label_color || "bg-gray-500"}`} />
-                <span>{board.label_text}</span>
-              </>
+            {board.labels && board.labels.length > 0 ? (
+              <div className="flex flex-wrap gap-1.5">
+                {board.labels.map((label) => (
+                  <span
+                    key={label.id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
+                  >
+                    <div className={`w-2 h-2 rounded-full ${label.color}`} />
+                    <span>{label.text}</span>
+                  </span>
+                ))}
+              </div>
             ) : (
-              <span className="text-gray-400 italic">No label</span>
+              <span className="text-gray-400 italic">No labels</span>
             )}
           </div>
         )}

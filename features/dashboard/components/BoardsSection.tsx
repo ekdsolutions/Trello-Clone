@@ -42,7 +42,10 @@ interface BoardsSectionProps {
   onSearchChange: (value: string) => void;
   searchValue: string;
   onReorderBoards?: (newOrder: { id: string; sort_order: number }[]) => void;
-  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; label_text?: string | null; label_color?: string }) => void;
+  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null }) => void;
+  allLabels?: Array<{ id: string; text: string; color: string }>;
+  onLabelsUpdate?: (boardId: string, labelIds: string[]) => Promise<void>;
+  onCreateLabel?: (text: string, color: string) => Promise<{ id: string; text: string; color: string }>;
 }
 
 export function BoardsSection({
@@ -58,6 +61,9 @@ export function BoardsSection({
   searchValue,
   onReorderBoards,
   onBoardValueUpdate,
+  allLabels = [],
+  onLabelsUpdate,
+  onCreateLabel,
 }: BoardsSectionProps) {
   const [localBoards, setLocalBoards] = useState(boards);
   const sensors = useSensors(
@@ -185,13 +191,20 @@ export function BoardsSection({
                     {board.title}
                   </CardTitle>
                   <CardDescription className="text-sm mb-4">
-                    {board.label_text ? (
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded ${board.label_color || "bg-gray-500"}`} />
-                        <span>{board.label_text}</span>
+                    {board.labels && board.labels.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {board.labels.map((label) => (
+                          <span
+                            key={label.id}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
+                          >
+                            <div className={`w-2 h-2 rounded-full ${label.color}`} />
+                            <span>{label.text}</span>
+                          </span>
+                        ))}
                       </div>
                     ) : (
-                      <span className="text-gray-400 italic">No label</span>
+                      <span className="text-gray-400 italic">No labels</span>
                     )}
                   </CardDescription>
                   <div className="space-y-2 mb-4">
@@ -283,30 +296,16 @@ export function BoardsSection({
                   items={displayBoards.map((b) => b.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {displayBoards.map((board) => {
-                    // Get unique existing labels from all boards (excluding current board)
-                    const existingLabels = displayBoards
-                      .filter((b) => b.id !== board.id && b.label_text)
-                      .map((b) => ({
-                        text: b.label_text!,
-                        color: b.label_color || "bg-gray-500",
-                      }))
-                      .filter(
-                        (label, index, self) =>
-                          index ===
-                          self.findIndex(
-                            (l) => l.text === label.text && l.color === label.color
-                          )
-                      );
-                    return (
-                      <SortableBoardRow
-                        key={board.id}
-                        board={board}
-                        existingLabels={existingLabels}
-                        onValueUpdate={onBoardValueUpdate || (() => {})}
-                      />
-                    );
-                  })}
+                  {displayBoards.map((board) => (
+                    <SortableBoardRow
+                      key={board.id}
+                      board={board}
+                      allLabels={allLabels}
+                      onValueUpdate={onBoardValueUpdate || (() => {})}
+                      onLabelsUpdate={onLabelsUpdate || (async () => {})}
+                      onCreateLabel={onCreateLabel || (async () => ({ id: "", text: "", color: "" }))}
+                    />
+                  ))}
                 </SortableContext>
               </tbody>
             </table>
