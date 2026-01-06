@@ -9,8 +9,6 @@ export interface Label {
 export interface Board {
   id: string;
   title: string;
-  label_text: string | null;
-  label_color: string;
   color: string;
   user_id: string;
   created_at: string;
