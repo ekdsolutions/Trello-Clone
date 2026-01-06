@@ -8,6 +8,8 @@ export interface Board {
   updated_at: string;
   total_value: number;
   upcoming_value: number;
+  received_value: number;
+  retainer_y: number;
   sort_order: number;
   totalTasks?: number;
 }

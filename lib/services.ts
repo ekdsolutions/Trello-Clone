@@ -270,6 +270,8 @@ export const boardDataService = {
       user_id: boardData.userId,
       total_value: 0,
       upcoming_value: 0,
+      received_value: 0,
+      retainer_y: 0,
       sort_order: maxSortOrder,
     });
 

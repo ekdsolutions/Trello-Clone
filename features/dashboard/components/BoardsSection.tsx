@@ -42,7 +42,7 @@ interface BoardsSectionProps {
   onSearchChange: (value: string) => void;
   searchValue: string;
   onReorderBoards?: (newOrder: { id: string; sort_order: number }[]) => void;
-  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number }) => void;
+  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; retainer_y?: number }) => void;
 }
 
 export function BoardsSection({
@@ -258,10 +258,16 @@ export function BoardsSection({
                     Tasks
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Total Value
+                    Upcoming
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Upcoming
+                    Received
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                    Total
+                  </th>
+                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                    Retainer/y
                   </th>
                   <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
                     Created
