@@ -1,0 +1,3 @@
+ALTER TABLE public.boards
+ADD COLUMN IF NOT EXISTS notes TEXT;
+

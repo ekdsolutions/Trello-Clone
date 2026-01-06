@@ -92,6 +92,18 @@ export const boardService = {
     return data;
   },
 
+  async deleteBoard(
+    supabase: SupabaseClient,
+    boardId: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from("boards")
+      .delete()
+      .eq("id", boardId);
+
+    if (error) throw error;
+  },
+
   async reorderBoards(
     supabase: SupabaseClient,
     userId: string,
@@ -289,6 +301,7 @@ export const boardDataService = {
       received_value: 0,
       annual: 0,
       started_date: null,
+      notes: null,
       sort_order: maxSortOrder,
     });
 
@@ -339,6 +352,34 @@ export const labelService = {
     return data;
   },
 
+  async getOrCreateLabel(supabase: SupabaseClient, userId: string, text: string, color: string): Promise<Label> {
+    let { data, error } = await supabase
+      .from("labels")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("text", text)
+      .eq("color", color)
+      .single();
+
+    if (error && error.code === 'PGRST116') { // No rows found
+      return await labelService.createLabel(supabase, { user_id: userId, text, color });
+    } else if (error) {
+      throw error;
+    }
+    return data;
+  },
+
+  async deleteLabel(supabase: SupabaseClient, labelId: string): Promise<void> {
+    const { error } = await supabase
+      .from("labels")
+      .delete()
+      .eq("id", labelId);
+
+    if (error) throw error;
+  },
+};
+
+export const boardLabelService = {
   async updateBoardLabels(
     supabase: SupabaseClient,
     boardId: string,

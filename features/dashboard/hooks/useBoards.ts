@@ -1,6 +1,6 @@
 "use client";
 
-import { boardDataService, boardService, labelService } from "@/lib/services";
+import { boardDataService, boardService, labelService, boardLabelService } from "@/lib/services";
 import { Board, Label } from "@/lib/supabase/models";
 import { useSupabase } from "@/providers/SupabaseProvider";
 import { useUser } from "@clerk/nextjs";
@@ -53,8 +53,10 @@ export function useBoards() {
         }
       );
       await loadBoards(); // Reload to get proper sort order
+      return newBoard;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create board.");
+      throw err;
     }
   }
 
@@ -92,7 +94,7 @@ export function useBoards() {
 
   async function updateBoardValue(
     boardId: string,
-    updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null }
+    updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; notes?: string | null }
   ) {
     if (!user || !supabase) return;
 
@@ -113,7 +115,7 @@ export function useBoards() {
     if (!user || !supabase) return;
 
     try {
-      await labelService.updateBoardLabels(supabase, boardId, labelIds);
+      await boardLabelService.updateBoardLabels(supabase, boardId, labelIds);
       await loadBoards(); // Reload to get updated labels
     } catch (err) {
       console.error("Failed to update board labels:", err);
@@ -143,6 +145,35 @@ export function useBoards() {
     loadLabels();
   };
 
+  async function deleteBoard(boardId: string) {
+    if (!user || !supabase) return;
+    try {
+      await boardService.deleteBoard(supabase, boardId);
+      setBoards((prev) => prev.filter((b) => b.id !== boardId));
+    } catch (err) {
+      console.error("Failed to delete board:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete board.");
+    }
+  }
+
+  async function deleteLabel(labelId: string) {
+    if (!user || !supabase) return;
+    try {
+      await labelService.deleteLabel(supabase, labelId);
+      setLabels((prev) => prev.filter((l) => l.id !== labelId));
+      // Also remove from boards that had this label
+      setBoards((prev) =>
+        prev.map((board) => ({
+          ...board,
+          labels: board.labels?.filter((l) => l.id !== labelId) || [],
+        }))
+      );
+    } catch (err) {
+      console.error("Failed to delete label:", err);
+      setError(err instanceof Error ? err.message : "Failed to delete label.");
+    }
+  }
+
   return { 
     boards, 
     labels,
@@ -154,5 +185,7 @@ export function useBoards() {
     updateBoardValue,
     updateBoardLabels,
     createLabel,
+    deleteBoard,
+    deleteLabel,
   };
 }

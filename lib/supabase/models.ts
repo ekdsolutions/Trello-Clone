@@ -20,6 +20,7 @@ export interface Board {
   received_value: number;
   annual: number;
   started_date: string | null;
+  notes: string | null;
   sort_order: number;
   labels?: Label[];
   totalTasks?: number;

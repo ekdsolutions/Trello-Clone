@@ -9,7 +9,7 @@ import { colors } from "@/features/boards/constants";
 import { Label as LabelModel } from "@/lib/supabase/models";
 import { LabelEditor } from "./LabelEditor";
 
-interface CreateBoardDialogProps {
+interface EditBoardDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
@@ -18,12 +18,13 @@ interface CreateBoardDialogProps {
   onLabelIdsChange: (labelIds: string[]) => void;
   allLabels: LabelModel[];
   onCreateLabel: (text: string, color: string) => Promise<LabelModel>;
+  onDeleteLabel?: (labelId: string) => Promise<void>;
   color: string;
   onColorChange: (color: string) => void;
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
 }
 
-export function CreateBoardDialog({
+export function EditBoardDialog({
   isOpen,
   onOpenChange,
   title,
@@ -32,10 +33,11 @@ export function CreateBoardDialog({
   onLabelIdsChange,
   allLabels,
   onCreateLabel,
+  onDeleteLabel,
   color,
   onColorChange,
   onSubmit,
-}: CreateBoardDialogProps) {
+}: EditBoardDialogProps) {
   const [isEditingLabels, setIsEditingLabels] = useState(false);
   const boardLabels = allLabels.filter(l => selectedLabelIds.includes(l.id));
 
@@ -43,8 +45,8 @@ export function CreateBoardDialog({
     <BaseDialog
       isOpen={isOpen}
       onOpenChange={onOpenChange}
-      title="Create New Board"
-      description="Give your board a name and choose a color"
+      title="Edit Board"
+      description="Update your board details"
     >
       <form className="space-y-4" onSubmit={onSubmit}>
         <div className="space-y-2">
@@ -70,6 +72,7 @@ export function CreateBoardDialog({
               }}
               onCancel={() => setIsEditingLabels(false)}
               onCreateLabel={onCreateLabel}
+              onDeleteLabel={onDeleteLabel}
             />
           ) : (
             <div
@@ -121,7 +124,7 @@ export function CreateBoardDialog({
             Cancel
           </Button>
           <Button type="submit" className="cursor-pointer">
-            Create Board
+            Save Changes
           </Button>
         </div>
       </form>

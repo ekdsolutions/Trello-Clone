@@ -6,18 +6,43 @@ import { CSS } from "@dnd-kit/utilities";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { GripVertical } from "lucide-react";
+import { GripVertical, MoreVertical, Receipt, Recycle, MessageCircleQuestion, CircleCheck, NotepadText } from "lucide-react";
 import { LabelEditor } from "./LabelEditor";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface SortableBoardRowProps {
   board: Board;
   allLabels: Label[];
-  onValueUpdate: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null }) => void;
+  onValueUpdate: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; notes?: string | null }) => void;
   onLabelsUpdate: (boardId: string, labelIds: string[]) => Promise<void>;
   onCreateLabel: (text: string, color: string) => Promise<Label>;
+  onDeleteLabel?: (labelId: string) => Promise<void>;
+  onEditBoard?: (boardId: string) => void;
+  onDeleteBoard?: (boardId: string) => void;
 }
 
-export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpdate, onCreateLabel }: SortableBoardRowProps) {
+export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpdate, onCreateLabel, onDeleteLabel, onEditBoard, onDeleteBoard }: SortableBoardRowProps) {
   const {
     attributes,
     listeners,
@@ -38,6 +63,8 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
   const [isEditingAnnual, setIsEditingAnnual] = useState(false);
   const [isEditingStarted, setIsEditingStarted] = useState(false);
   const [isEditingLabel, setIsEditingLabel] = useState(false);
+  const [isNotesModalOpen, setIsNotesModalOpen] = useState(false);
+  const [notesValue, setNotesValue] = useState<string>(board.notes || "");
 
   // Sync local state with board prop changes (when not editing)
   useEffect(() => {
@@ -70,19 +97,66 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
     }
   }, [board.started_date, isEditingStarted]);
 
+  useEffect(() => {
+    if (!isNotesModalOpen) {
+      setNotesValue(board.notes || "");
+    }
+  }, [board.notes, isNotesModalOpen]);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const formatCurrency = (value: number): string => {
+  const formatCurrency = (value: number | null | undefined): string => {
+    if (!value || value === 0) return "-";
     return new Intl.NumberFormat("he-IL", {
       style: "currency",
       currency: "ILS",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(value);
+  };
+
+  const formatDate = (date: string | null | undefined): string => {
+    if (!date) return "-";
+    return new Date(date).toLocaleDateString();
+  };
+
+  const getStatusIcon = () => {
+    const upcoming = board.upcoming_value || 0;
+    const annual = board.annual || 0;
+    const received = board.received_value || 0;
+    const total = board.total_value || 0;
+
+    // Rule 1: If upcoming has value (not 0), show Receipt (red)
+    if (upcoming > 0) {
+      return { icon: Receipt, bgColor: "bg-red-500", color: "text-white" };
+    }
+
+    // Rule 2: If upcoming is empty but annual has value, show Recycle (blue)
+    if (upcoming === 0 && annual > 0) {
+      return { icon: Recycle, bgColor: "bg-blue-500", color: "text-white" };
+    }
+
+    // Rule 3a: If upcoming and received are empty but total has any value, show MessageCircleQuestion (orange)
+    if (upcoming === 0 && received === 0 && total > 0) {
+      return { icon: MessageCircleQuestion, bgColor: "bg-orange-500", color: "text-white" };
+    }
+
+    // Rule 3b: If upcoming and annual are empty and received != total, show MessageCircleQuestion (orange)
+    if (upcoming === 0 && annual === 0 && received !== total) {
+      return { icon: MessageCircleQuestion, bgColor: "bg-orange-500", color: "text-white" };
+    }
+
+    // Rule 4: If upcoming and annual are empty but received equals total, show CircleCheck (green)
+    if (upcoming === 0 && annual === 0 && received === total && total > 0) {
+      return { icon: CircleCheck, bgColor: "bg-green-500", color: "text-white" };
+    }
+
+    // Default: no status
+    return null;
   };
 
   const handleTotalValueBlur = () => {
@@ -185,13 +259,32 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
     await onLabelsUpdate(board.id, labelIds);
   };
 
+  const handleNotesSave = () => {
+    onValueUpdate(board.id, { notes: notesValue.trim() || null });
+    setIsNotesModalOpen(false);
+  };
+
+  const handleNotesCancel = () => {
+    setNotesValue(board.notes || "");
+    setIsNotesModalOpen(false);
+  };
+
+  useEffect(() => {
+    if (!isNotesModalOpen) {
+      setNotesValue(board.notes || "");
+    }
+  }, [board.notes, isNotesModalOpen]);
+
+  const statusIcon = getStatusIcon();
+  const hasNotes = board.notes && board.notes.trim().length > 0;
+
   return (
     <tr
       ref={setNodeRef}
       style={style}
       className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
     >
-      <td className="py-4 px-4 w-8">
+      <td className="py-2 px-3 w-8">
         <div
           {...attributes}
           {...listeners}
@@ -200,7 +293,7 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
           <GripVertical className="w-4 h-4" />
         </div>
       </td>
-      <td className="py-4 px-4">
+      <td className="py-2 px-3">
         <Link href={`/boards/${board.id}`}>
           <div className="flex items-center gap-3 cursor-pointer group">
             <div className={`w-4 h-4 rounded flex-shrink-0 ${board.color}`} />
@@ -212,7 +305,7 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
           </div>
         </Link>
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden sm:table-cell relative">
+      <td className="py-2 px-3 text-sm text-gray-600 hidden sm:table-cell relative">
         {isEditingLabel ? (
           <LabelEditor
             boardLabels={board.labels || []}
@@ -220,6 +313,7 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             onSave={handleLabelSave}
             onCancel={() => setIsEditingLabel(false)}
             onCreateLabel={onCreateLabel}
+            onDeleteLabel={onDeleteLabel}
           />
         ) : (
           <div
@@ -229,22 +323,22 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             {board.labels && board.labels.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {board.labels.map((label) => (
-                  <span
-                    key={label.id}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
-                  >
-                    <div className={`w-2 h-2 rounded-full ${label.color}`} />
-                    <span>{label.text}</span>
-                  </span>
+                    <span
+                      key={label.id}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
+                    >
+                      <div className={`w-2 h-2 rounded-full ${label.color}`} />
+                      <span className="uppercase">{label.text}</span>
+                    </span>
                 ))}
               </div>
             ) : (
-              <span className="text-gray-400 italic">No labels</span>
+              <span className="text-gray-400 italic">-</span>
             )}
           </div>
         )}
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingUpcoming ? (
           <Input
             type="number"
@@ -260,11 +354,11 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             onClick={() => setIsEditingUpcoming(true)}
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[80px] inline-block"
           >
-            {formatCurrency(board.upcoming_value || 0)}
+            {formatCurrency(board.upcoming_value)}
           </div>
         )}
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingReceived ? (
           <Input
             type="number"
@@ -280,11 +374,11 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             onClick={() => setIsEditingReceived(true)}
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[80px] inline-block"
           >
-            {formatCurrency(board.received_value || 0)}
+            {formatCurrency(board.received_value)}
           </div>
         )}
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingTotal ? (
           <Input
             type="number"
@@ -300,11 +394,11 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             onClick={() => setIsEditingTotal(true)}
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[80px] inline-block"
           >
-            {formatCurrency(board.total_value || 0)}
+            {formatCurrency(board.total_value)}
           </div>
         )}
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingAnnual ? (
           <Input
             type="number"
@@ -320,11 +414,11 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             onClick={() => setIsEditingAnnual(true)}
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[80px] inline-block"
           >
-            {formatCurrency(board.annual || 0)}
+            {formatCurrency(board.annual)}
           </div>
         )}
       </td>
-      <td className="py-4 px-4 text-sm text-gray-600 hidden lg:table-cell">
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingStarted ? (
           <Input
             type="date"
@@ -340,12 +434,96 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
             onClick={() => setIsEditingStarted(true)}
             className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[100px] inline-block"
           >
-            {board.started_date
-              ? new Date(board.started_date).toLocaleDateString()
-              : "Not set"}
+            {formatDate(board.started_date)}
           </div>
         )}
       </td>
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsNotesModalOpen(true)}
+                className={`inline-flex items-center justify-center w-6 h-6 rounded cursor-pointer transition-colors ${
+                  hasNotes ? "bg-gray-700 text-white hover:bg-gray-800" : "bg-gray-300 text-gray-600 hover:bg-gray-400"
+                }`}
+              >
+                <NotepadText className="w-4 h-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p className="max-w-xs break-words">
+                {hasNotes ? board.notes : "nothing here..."}
+              </p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </td>
+      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
+        {statusIcon ? (
+          <div className={`inline-flex items-center justify-center w-6 h-6 rounded ${statusIcon.bgColor} ${statusIcon.color}`}>
+            <statusIcon.icon className="w-4 h-4" />
+          </div>
+        ) : (
+          <span className="text-gray-400">-</span>
+        )}
+      </td>
+      <td className="py-2 px-3 w-12">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1 hover:bg-gray-100 rounded">
+              <MoreVertical className="w-4 h-4 text-gray-600" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            {onEditBoard && (
+              <DropdownMenuItem onClick={() => onEditBoard(board.id)}>
+                Edit
+              </DropdownMenuItem>
+            )}
+            {onDeleteBoard && (
+              <DropdownMenuItem 
+                onClick={() => onDeleteBoard(board.id)}
+                className="text-red-600"
+              >
+                Delete
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </td>
+
+      {/* Notes Edit Modal */}
+      <Dialog open={isNotesModalOpen} onOpenChange={setIsNotesModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Notes</DialogTitle>
+            <DialogDescription>
+              Add or edit notes for this board
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Textarea
+              value={notesValue}
+              onChange={(e) => setNotesValue(e.target.value)}
+              placeholder="Enter notes..."
+              className="min-h-[120px]"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleNotesCancel}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleNotesSave}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </tr>
   );
 }

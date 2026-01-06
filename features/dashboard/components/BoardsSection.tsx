@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Board, Label } from "@/lib/supabase/models";
-import { Filter, Grid3X3, List, Plus, Search } from "lucide-react";
+import { Filter, Grid3X3, List, Plus } from "lucide-react";
 import Link from "next/link";
 import {
   DndContext,
@@ -39,13 +39,14 @@ interface BoardsSectionProps {
   onCreateBoard: () => void;
   activeFilterCount: number;
   isFreeUser: boolean;
-  onSearchChange: (value: string) => void;
-  searchValue: string;
   onReorderBoards?: (newOrder: { id: string; sort_order: number }[]) => void;
-  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null }) => void;
+  onBoardValueUpdate?: (boardId: string, updates: { total_value?: number; upcoming_value?: number; received_value?: number; annual?: number; started_date?: string | null; notes?: string | null }) => void;
   allLabels?: Label[];
   onLabelsUpdate?: (boardId: string, labelIds: string[]) => Promise<void>;
   onCreateLabel?: (text: string, color: string) => Promise<Label>;
+  onDeleteLabel?: (labelId: string) => Promise<void>;
+  onEditBoard?: (boardId: string) => void;
+  onDeleteBoard?: (boardId: string) => void;
 }
 
 export function BoardsSection({
@@ -57,13 +58,14 @@ export function BoardsSection({
   onCreateBoard,
   activeFilterCount,
   isFreeUser,
-  onSearchChange,
-  searchValue,
   onReorderBoards,
   onBoardValueUpdate,
   allLabels = [],
   onLabelsUpdate,
   onCreateLabel,
+  onDeleteLabel,
+  onEditBoard,
+  onDeleteBoard,
 }: BoardsSectionProps) {
   const [localBoards, setLocalBoards] = useState(boards);
   const sensors = useSensors(
@@ -158,17 +160,6 @@ export function BoardsSection({
         </div>
       </div>
 
-      {/* Search Boards */}
-      <div className="relative mb-4 sm:mb-6">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-        <Input
-          id="search"
-          placeholder="Search Boards..."
-          className="pl-10"
-          value={searchValue}
-          onChange={(e) => onSearchChange(e.target.value)}
-        />
-      </div>
 
       {/* Boards Grids/List */}
       {displayBoards.length === 0 ? (
@@ -193,15 +184,15 @@ export function BoardsSection({
                   <CardDescription className="text-sm mb-4">
                     {board.labels && board.labels.length > 0 ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {board.labels.map((label) => (
-                          <span
-                            key={label.id}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
-                          >
-                            <div className={`w-2 h-2 rounded-full ${label.color}`} />
-                            <span>{label.text}</span>
-                          </span>
-                        ))}
+                             {board.labels.map((label) => (
+                               <span
+                                 key={label.id}
+                                 className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
+                               >
+                                 <div className={`w-2 h-2 rounded-full ${label.color}`} />
+                                 <span className="uppercase">{label.text}</span>
+                               </span>
+                             ))}
                       </div>
                     ) : (
                       <span className="text-gray-400 italic">No labels</span>
@@ -265,31 +256,40 @@ export function BoardsSection({
             <table className="w-full border-collapse">
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 w-8">
-                    {/* Drag handle column */}
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700">
-                    Board
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden sm:table-cell">
-                    Label
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Upcoming
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Received
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Total
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Annual
-                  </th>
-                  <th className="text-left py-3 px-4 text-sm font-semibold text-gray-700 hidden lg:table-cell">
-                    Started
-                  </th>
-                </tr>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-8">
+                     {/* Drag handle column */}
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700">
+                     Board
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden sm:table-cell">
+                     Label
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Upcoming
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Received
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Total
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Annual
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Started
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Notes
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 hidden lg:table-cell">
+                     Status
+                   </th>
+                   <th className="text-left py-2 px-3 text-sm font-semibold text-gray-700 w-12">
+                     {/* Actions column */}
+                   </th>
+                 </tr>
               </thead>
               <tbody>
                 <SortableContext
@@ -306,6 +306,9 @@ export function BoardsSection({
                       onCreateLabel={onCreateLabel || (async () => {
                         throw new Error("createLabel function not provided");
                       })}
+                      onDeleteLabel={onDeleteLabel}
+                      onEditBoard={onEditBoard}
+                      onDeleteBoard={onDeleteBoard}
                     />
                   ))}
                 </SortableContext>

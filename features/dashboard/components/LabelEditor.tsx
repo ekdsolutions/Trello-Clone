@@ -2,9 +2,18 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { colors } from "@/features/boards/constants";
 import { Label } from "@/lib/supabase/models";
 import { X } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LabelEditorProps {
   boardLabels: Label[];
@@ -12,6 +21,7 @@ interface LabelEditorProps {
   onSave: (labelIds: string[]) => void;
   onCancel: () => void;
   onCreateLabel: (text: string, color: string) => Promise<Label>;
+  onDeleteLabel?: (labelId: string) => Promise<void>;
 }
 
 export function LabelEditor({
@@ -20,6 +30,7 @@ export function LabelEditor({
   onSave,
   onCancel,
   onCreateLabel,
+  onDeleteLabel,
 }: LabelEditorProps) {
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(
     new Set(boardLabels.map((l) => l.id))
@@ -29,6 +40,8 @@ export function LabelEditor({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showNewLabelForm, setShowNewLabelForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [labelToDelete, setLabelToDelete] = useState<Label | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -99,7 +112,7 @@ export function LabelEditor({
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors"
                 >
                   <div className={`w-2.5 h-2.5 rounded-full ${label.color}`} />
-                  <span>{label.text}</span>
+                  <span className="uppercase">{label.text}</span>
                   <X className="w-3 h-3" />
                 </button>
               ))}
@@ -123,7 +136,19 @@ export function LabelEditor({
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
                 >
                   <div className={`w-2.5 h-2.5 rounded-full ${label.color}`} />
-                  <span>{label.text}</span>
+                  <span className="uppercase">{label.text}</span>
+                  {onDeleteLabel && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setLabelToDelete(label);
+                      }}
+                      className="ml-1 hover:bg-gray-200 rounded p-0.5"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  )}
                 </button>
               ))}
             </div>
@@ -231,6 +256,51 @@ export function LabelEditor({
           </button>
         </div>
       </div>
+
+      {/* Delete Label Confirmation Dialog */}
+      <Dialog open={!!labelToDelete} onOpenChange={(open) => !open && setLabelToDelete(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Label</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete the label "{labelToDelete?.text}"? This will remove it from all boards that use it.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setLabelToDelete(null)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!labelToDelete || !onDeleteLabel) return;
+                setIsDeleting(true);
+                try {
+                  await onDeleteLabel(labelToDelete.id);
+                  // Remove from selected if it was selected
+                  if (selectedLabelIds.has(labelToDelete.id)) {
+                    const newSet = new Set(selectedLabelIds);
+                    newSet.delete(labelToDelete.id);
+                    setSelectedLabelIds(newSet);
+                  }
+                  setLabelToDelete(null);
+                } catch (err) {
+                  console.error("Failed to delete label:", err);
+                } finally {
+                  setIsDeleting(false);
+                }
+              }}
+              disabled={isDeleting}
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
