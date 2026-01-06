@@ -303,7 +303,9 @@ export function BoardsSection({
                       allLabels={allLabels}
                       onValueUpdate={onBoardValueUpdate || (() => {})}
                       onLabelsUpdate={onLabelsUpdate || (async () => {})}
-                      onCreateLabel={onCreateLabel || (async () => ({ id: "", text: "", color: "" }))}
+                      onCreateLabel={onCreateLabel || (async () => {
+                        throw new Error("createLabel function not provided");
+                      })}
                     />
                   ))}
                 </SortableContext>
