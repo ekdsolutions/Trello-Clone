@@ -222,6 +222,9 @@ export default function Dashboard() {
           onLabelsUpdate={updateBoardLabels}
           onCreateLabel={createLabel}
           onDeleteLabel={deleteLabel}
+          savedProducts={savedProducts}
+          onProductsUpdate={updateBoardProducts}
+          onCreateSavedProduct={createSavedProduct}
           onEditBoard={handleEditBoard}
           onDeleteBoard={handleDeleteBoard}
         />
