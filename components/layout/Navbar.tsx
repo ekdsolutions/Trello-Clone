@@ -7,6 +7,7 @@ import {
   Filter,
   MoreHorizontal,
   Kanban,
+  Plus,
 } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
@@ -20,6 +21,7 @@ interface NavbarProps {
   onEditBoard?: () => void;
   onFilterClick?: () => void;
   filterCount?: number;
+  onCreateBoard?: () => void;
   className?: string;
 }
 
@@ -28,6 +30,7 @@ const Navbar = ({
   onEditBoard,
   onFilterClick,
   filterCount,
+  onCreateBoard,
   className,
 }: NavbarProps) => {
   const { isSignedIn, user } = useUser();
@@ -49,6 +52,12 @@ const Navbar = ({
             </div>
           </Link>
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {onCreateBoard && (
+              <Button onClick={onCreateBoard} size="sm" className="cursor-pointer">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Board
+              </Button>
+            )}
             <UserButton />
           </div>
         </div>

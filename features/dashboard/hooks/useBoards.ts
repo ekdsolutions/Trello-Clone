@@ -128,10 +128,18 @@ export function useBoards() {
 
     try {
       await boardLabelService.updateBoardLabels(supabase, boardId, labelIds);
-      await loadBoards(); // Reload to get updated labels
+      // Optimistically update labels without full reload
+      const selectedLabels = labels.filter(l => labelIds.includes(l.id));
+      setBoards((prev) =>
+        prev.map((board) =>
+          board.id === boardId ? { ...board, labels: selectedLabels } : board
+        )
+      );
     } catch (err) {
       console.error("Failed to update board labels:", err);
       setError(err instanceof Error ? err.message : "Failed to update board labels.");
+      // Reload on error to sync state
+      await loadBoards();
     }
   }
 
@@ -156,11 +164,76 @@ export function useBoards() {
     if (!user || !supabase) return;
     try {
       await productService.updateBoardProducts(supabase, boardId, user.id, products);
-      await loadBoards(); // Reload to get updated products and calculated annual/ending
-      await loadSavedProducts(); // Reload saved products in case new ones were created
+      
+      // Calculate annual from products
+      const calculatedAnnual = products.reduce((sum, product) => {
+        return sum + (product.price / product.period);
+      }, 0);
+
+      // Calculate ending date (closest upcoming ending date)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      let closestEndingDate: Date | null = null;
+      const endingDates = products.map(product => {
+        const startDate = new Date(product.started_date);
+        let endDate = new Date(startDate);
+        
+        // Add period years
+        endDate.setFullYear(endDate.getFullYear() + Math.floor(product.period));
+        if (product.period % 1 !== 0) {
+          endDate.setMonth(endDate.getMonth() + 6); // Add 6 months for 0.5 year
+        }
+        
+        // Auto-extend if past
+        while (endDate < today) {
+          endDate.setFullYear(endDate.getFullYear() + Math.floor(product.period));
+          if (product.period % 1 !== 0) {
+            endDate.setMonth(endDate.getMonth() + 6);
+          }
+        }
+        
+        return endDate;
+      }).filter(date => date >= today).sort((a, b) => a.getTime() - b.getTime());
+      
+      if (endingDates.length > 0) {
+        closestEndingDate = endingDates[0];
+      }
+
+      // Convert products to Product format for state
+      const productsWithIds = products.map((p, idx) => ({
+        id: `temp-${Date.now()}-${idx}`, // Temporary ID, will be replaced on next load
+        board_id: boardId,
+        name: p.name,
+        started_date: p.started_date,
+        period: p.period,
+        price: p.price,
+        sort_order: idx,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }));
+
+      // Optimistically update board without full reload
+      setBoards((prev) =>
+        prev.map((board) =>
+          board.id === boardId
+            ? {
+                ...board,
+                products: productsWithIds,
+                annual: calculatedAnnual,
+                ending_date: closestEndingDate ? closestEndingDate.toISOString().split('T')[0] : null,
+              }
+            : board
+        )
+      );
+
+      // Reload saved products in case new ones were created (this is lightweight)
+      await loadSavedProducts();
     } catch (err) {
       console.error("Failed to update board products:", err);
       setError(err instanceof Error ? err.message : "Failed to update board products.");
+      // Reload on error to sync state
+      await loadBoards();
     }
   }
 

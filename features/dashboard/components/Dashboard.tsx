@@ -2,11 +2,10 @@
 
 import Navbar from "@/components/layout/Navbar";
 import { Board } from "@/lib/supabase/models";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useBoards } from "../hooks/useBoards";
 import { usePlan } from "../hooks/usePlan";
 import { UpgradeDialog } from "./UpgradeDialog";
-import { FilterDialog } from "./FilterDialog";
 import { BoardsSection } from "./BoardsSection";
 import { ErrorState } from "@/components/common/Error";
 import { CreateBoardDialog } from "./CreateBoardDialog";
@@ -24,31 +23,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
-const VIEW_MODE_STORAGE_KEY = "tasker-view-mode";
-
 export default function Dashboard() {
   const { createBoard, boards, labels, savedProducts, loading, error, refetch, reorderBoards, updateBoardValue, updateBoardLabels, updateBoardProducts, createLabel, createSavedProduct, deleteBoard, deleteLabel } = useBoards();
   const { isFreeUser } = usePlan();
   const { supabase } = useSupabase();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-
-  // Load viewMode from localStorage on mount
-  useEffect(() => {
-    const savedViewMode = localStorage.getItem(VIEW_MODE_STORAGE_KEY);
-    if (savedViewMode === "grid" || savedViewMode === "list") {
-      setViewMode(savedViewMode);
-    }
-  }, []);
-
-  // Save viewMode to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem(VIEW_MODE_STORAGE_KEY, viewMode);
-  }, [viewMode]);
-
-  const handleViewModeChange = (mode: "grid" | "list") => {
-    setViewMode(mode);
-  };
-  const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState<boolean>(false);
   const [isCreateBoardDialogOpen, setIsCreateBoardDialogOpen] = useState<boolean>(false);
   const [newBoardTitle, setNewBoardTitle] = useState<string>("");
@@ -60,31 +38,8 @@ export default function Dashboard() {
   const [editingBoardColor, setEditingBoardColor] = useState<string>(colors[0]);
   const [isEditBoardDialogOpen, setIsEditBoardDialogOpen] = useState<boolean>(false);
   const [deletingBoardId, setDeletingBoardId] = useState<string | null>(null);
-  const [filters, setFilters] = useState({
-    dateRange: {
-      start: null as string | null,
-      end: null as string | null,
-    },
-    taskCount: {
-      min: null as number | null,
-      max: null as number | null,
-    },
-  });
 
   const canCreateBoard = !isFreeUser || boards.length < 1;
-
-  function clearFilters() {
-    setFilters({
-      dateRange: {
-        start: null as string | null,
-        end: null as string | null,
-      },
-      taskCount: {
-        min: null as number | null,
-        max: null as number | null,
-      },
-    });
-  }
 
   const handleCreateBoard = () => {
     if (!canCreateBoard) {
@@ -165,27 +120,6 @@ export default function Dashboard() {
     setIsEditBoardDialogOpen(true);
   };
 
-  const filteredBoards = boards.filter((board: Board) => {
-    const taskCount = board.totalTasks ?? 0;
-
-    const matchesDateRange =
-      (!filters.dateRange.start ||
-        new Date(board.created_at) >= new Date(filters.dateRange.start)) &&
-      (!filters.dateRange.end ||
-        new Date(board.created_at) <= new Date(filters.dateRange.end));
-    const matchesTaskCount =
-      (!filters.taskCount.min || taskCount >= filters.taskCount.min) &&
-      (!filters.taskCount.max || taskCount <= filters.taskCount.max);
-
-    return matchesDateRange && matchesTaskCount;
-  });
-
-  const activeFilterCount = [
-    filters.dateRange.start ? 1 : 0,
-    filters.dateRange.end ? 1 : 0,
-    filters.taskCount.min !== null ? 1 : 0,
-    filters.taskCount.max !== null ? 1 : 0,
-  ].reduce((a, b) => a + b, 0);
 
   if (error) {
     return (
@@ -205,16 +139,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
+      <Navbar onCreateBoard={handleCreateBoard} />
       <main className="container mx-auto px-4 py-6 sm:py-8">
         <BoardsSection
-          boards={filteredBoards}
+          boards={boards}
           loading={loading}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          onFilterClick={() => setIsFilterOpen(true)}
-          onCreateBoard={handleCreateBoard}
-          activeFilterCount={activeFilterCount}
           isFreeUser={isFreeUser}
           onReorderBoards={reorderBoards}
           onBoardValueUpdate={updateBoardValue as any}
@@ -229,13 +158,6 @@ export default function Dashboard() {
           onDeleteBoard={handleDeleteBoard}
         />
       </main>
-      <FilterDialog
-        isOpen={isFilterOpen}
-        onOpenChange={setIsFilterOpen}
-        filters={filters}
-        onFiltersChange={setFilters}
-        onClearFilters={clearFilters}
-      />
 
       <UpgradeDialog
         isOpen={showUpgradeDialog}

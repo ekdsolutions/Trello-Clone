@@ -430,9 +430,6 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
         {formatCurrency(board.annual)}
       </td>
       <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
-        {formatDate(board.ending_date)}
-      </td>
-      <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         {isEditingStarted ? (
           <Input
             type="date"
@@ -453,24 +450,7 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
         )}
       </td>
       <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
-        {isEditingStarted ? (
-          <Input
-            type="date"
-            value={startedDate}
-            onChange={(e) => setStartedDate(e.target.value)}
-            onBlur={handleStartedDateBlur}
-            onKeyDown={handleStartedDateKeyDown}
-            className="w-32 h-8"
-            autoFocus
-          />
-        ) : (
-          <div
-            onClick={() => setIsEditingStarted(true)}
-            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded min-w-[100px] inline-block"
-          >
-            {formatDate(board.started_date)}
-          </div>
-        )}
+        {formatDate(board.ending_date)}
       </td>
       <td className="py-2 px-3 text-sm text-gray-600 hidden lg:table-cell">
         <TooltipProvider>

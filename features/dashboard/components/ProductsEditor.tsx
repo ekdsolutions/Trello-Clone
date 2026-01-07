@@ -128,9 +128,9 @@ export function ProductsEditor({
                 )}
               </div>
 
-              {/* 2x2 Grid Layout */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* Product Name - Top Left */}
+              {/* Grid Layout - Product and Period full width */}
+              <div className="space-y-3">
+                {/* Product Name - Full Width */}
                 <div className="space-y-1">
                   <Label className="text-xs">Product</Label>
                   {savedProducts.length > 0 && !showNewProductInput[index] ? (
@@ -147,7 +147,7 @@ export function ProductsEditor({
                         }
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select product..." />
                       </SelectTrigger>
                       <SelectContent>
@@ -204,24 +204,38 @@ export function ProductsEditor({
                   )}
                 </div>
 
-                {/* Started Date - Top Right */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Started</Label>
-                  <Input
-                    type="date"
-                    value={form.started_date}
-                    onChange={(e) => handleProductChange(index, "started_date", e.target.value)}
-                  />
+                {/* Started Date and Price - Side by Side */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Started</Label>
+                    <Input
+                      type="date"
+                      value={form.started_date}
+                      onChange={(e) => handleProductChange(index, "started_date", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Price</Label>
+                    <Input
+                      type="number"
+                      value={form.price}
+                      onChange={(e) => handleProductChange(index, "price", e.target.value)}
+                      placeholder="0"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
                 </div>
 
-                {/* Period - Bottom Left */}
+                {/* Period - Full Width */}
                 <div className="space-y-1">
                   <Label className="text-xs">Period</Label>
                   <Select
                     value={form.period.toString()}
                     onValueChange={(value) => handleProductChange(index, "period", parseFloat(value) as 0.5 | 1 | 2 | 3)}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -231,19 +245,6 @@ export function ProductsEditor({
                       <SelectItem value="3">3 years</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
-
-                {/* Price - Bottom Right */}
-                <div className="space-y-1">
-                  <Label className="text-xs">Price</Label>
-                  <Input
-                    type="number"
-                    value={form.price}
-                    onChange={(e) => handleProductChange(index, "price", e.target.value)}
-                    placeholder="0"
-                    min="0"
-                    step="0.01"
-                  />
                 </div>
               </div>
             </div>
