@@ -76,7 +76,7 @@ export function BoardsSection({
       setLocalBoards(newBoards);
 
       // Update sort orders
-      const newOrder = newBoards.map((board, index) => ({
+      const newOrder = newBoards.map((board: Board, index: number) => ({
         id: board.id,
         sort_order: index,
       }));
@@ -92,6 +92,23 @@ export function BoardsSection({
   }
 
   const displayBoards = localBoards;
+  
+  // Calculate summary totals
+  const formatCurrency = (value: number | null | undefined): string => {
+    if (value === null || value === undefined || value === 0) return "-";
+    return new Intl.NumberFormat("he-IL", {
+      style: "currency",
+      currency: "ILS",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const totalPending = displayBoards.reduce((sum: number, board: Board) => sum + (board.upcoming_value || 0), 0);
+  const totalReceived = displayBoards.reduce((sum: number, board: Board) => sum + (board.received_value || 0), 0);
+  const totalAnnual = displayBoards.reduce((sum: number, board: Board) => sum + (board.annual || 0), 0);
+  const boardsCount = displayBoards.length;
+
   return (
     <div className="mb-6 sm:mb-8">
       {/* Boards List */}
@@ -175,6 +192,49 @@ export function BoardsSection({
                   ))}
                 </SortableContext>
               </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
+                  <td className="py-2 px-3 text-sm text-gray-700 w-8">
+                    {/* Empty drag handle cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700">
+                    {boardsCount} {boardsCount === 1 ? "Board" : "Boards"}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden sm:table-cell">
+                    {/* Empty label cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {/* Empty products cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {formatCurrency(totalPending)}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {formatCurrency(totalReceived)}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {/* Empty total cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {formatCurrency(totalAnnual)}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {/* Empty started cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {/* Empty ending cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {/* Empty notes cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 hidden lg:table-cell">
+                    {/* Empty status cell */}
+                  </td>
+                  <td className="py-2 px-3 text-sm text-gray-700 w-12">
+                    {/* Empty actions cell */}
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </DndContext>
         </div>

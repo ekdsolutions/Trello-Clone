@@ -331,10 +331,9 @@ export function SortableBoardRow({ board, allLabels, onValueUpdate, onLabelsUpda
                 {board.labels.map((label) => (
                     <span
                       key={label.id}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100"
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium uppercase text-white ${label.color}`}
                     >
-                      <div className={`w-2 h-2 rounded-full ${label.color}`} />
-                      <span className="uppercase">{label.text}</span>
+                      <span>{label.text}</span>
                     </span>
                 ))}
               </div>

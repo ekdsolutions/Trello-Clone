@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { colors } from "@/features/boards/constants";
+import { labelColors } from "@/features/boards/constants";
 import { Label } from "@/lib/supabase/models";
 import { X } from "lucide-react";
 import {
@@ -36,7 +36,7 @@ export function LabelEditor({
     new Set(boardLabels.map((l) => l.id))
   );
   const [newLabelText, setNewLabelText] = useState("");
-  const [newLabelColor, setNewLabelColor] = useState("bg-gray-500");
+  const [newLabelColor, setNewLabelColor] = useState(labelColors[0]);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showNewLabelForm, setShowNewLabelForm] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -109,10 +109,9 @@ export function LabelEditor({
                   key={label.id}
                   type="button"
                   onClick={() => toggleLabel(label.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 hover:bg-gray-200 transition-colors"
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium uppercase text-white hover:opacity-80 transition-opacity ${label.color}`}
                 >
-                  <div className={`w-2.5 h-2.5 rounded-full ${label.color}`} />
-                  <span className="uppercase">{label.text}</span>
+                  <span>{label.text}</span>
                   <X className="w-3 h-3" />
                 </button>
               ))}
@@ -133,10 +132,9 @@ export function LabelEditor({
                   key={label.id}
                   type="button"
                   onClick={() => toggleLabel(label.id)}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-gray-300 hover:bg-gray-50 transition-colors"
+                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium uppercase text-white hover:opacity-80 transition-opacity ${label.color}`}
                 >
-                  <div className={`w-2.5 h-2.5 rounded-full ${label.color}`} />
-                  <span className="uppercase">{label.text}</span>
+                  <span>{label.text}</span>
                   {onDeleteLabel && (
                     <button
                       type="button"
@@ -200,7 +198,7 @@ export function LabelEditor({
                 </div>
                 {showColorPicker && (
                   <div className="grid grid-cols-6 gap-2">
-                    {colors.map((colorClass) => (
+                    {labelColors.map((colorClass) => (
                       <button
                         key={colorClass}
                         type="button"
