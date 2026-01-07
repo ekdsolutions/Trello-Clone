@@ -350,6 +350,7 @@ export const boardDataService = {
       annual: 0,
       started_date: null,
       notes: null,
+      ending_date: null,
       sort_order: maxSortOrder,
     });
 
