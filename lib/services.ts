@@ -75,7 +75,7 @@ export const boardService = {
       let closestEndingDate: Date | null = null;
       const endingDates = products.map(product => {
         const startDate = new Date(product.started_date);
-        let endDate = new Date(startDate);
+        const endDate = new Date(startDate);
         
         // Add period years
         endDate.setFullYear(endDate.getFullYear() + Math.floor(product.period));
@@ -474,7 +474,7 @@ export const productService = {
   },
 
   async getOrCreateSavedProduct(supabase: SupabaseClient, userId: string, name: string): Promise<SavedProduct> {
-    let { data, error } = await supabase
+    const { data, error } = await supabase
       .from("saved_products")
       .select("*")
       .eq("user_id", userId)
