@@ -253,7 +253,7 @@ export function ProductsEditor({
                     </Select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-xs">Cost</Label>
+                    <Label className="text-xs">Annual Cost</Label>
                     <Input
                       type="number"
                       value={form.cost}

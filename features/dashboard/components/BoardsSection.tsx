@@ -106,10 +106,14 @@ export function BoardsSection({
 
   const totalPending = displayBoards.reduce((sum: number, board: Board) => sum + (board.upcoming_value || 0), 0);
   const totalReceived = displayBoards.reduce((sum: number, board: Board) => sum + (board.received_value || 0), 0);
-  // Calculate total cost from all products across all boards
+  // Calculate net annual (annual price - annual cost) from all products across all boards
   const totalAnnual = displayBoards.reduce((sum: number, board: Board) => {
-    const boardCost = board.products?.reduce((productSum: number, product: any) => productSum + (product.cost || 0), 0) || 0;
-    return sum + boardCost;
+    const boardNetAnnual = board.products?.reduce((productSum: number, product: any) => {
+      const annualPrice = product.price / product.period;
+      const annualCost = product.cost || 0;
+      return productSum + (annualPrice - annualCost);
+    }, 0) || 0;
+    return sum + boardNetAnnual;
   }, 0);
   const boardsCount = displayBoards.length;
 
