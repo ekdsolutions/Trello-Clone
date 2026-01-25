@@ -21,6 +21,7 @@ interface BoardColumnsProps {
   onDeleteTask: (taskId: string) => void;
   onCreateColumn: () => void;
   viewMode: "cards" | "table";
+  moveTask?: (taskId: string, columnId: string, newIndex: number) => Promise<void>;
 }
 
 export function BoardColumns({
@@ -32,6 +33,7 @@ export function BoardColumns({
   onDeleteTask,
   onCreateColumn,
   viewMode,
+  moveTask,
 }: BoardColumnsProps) {
   if (loading) {
     return <BoardColumnsSkeleton />;
@@ -39,9 +41,23 @@ export function BoardColumns({
 
   // Table view - show all tasks in a single table
   if (viewMode === "table") {
+    // Get all task IDs for SortableContext
+    const allTaskIds = columns.flatMap((column) =>
+      column.tasks.map((task) => task.id)
+    );
+
     return (
       <div className="space-y-4">
-        <TaskTableView columns={columns} onDeleteTask={onDeleteTask} />
+        <SortableContext
+          items={allTaskIds}
+          strategy={verticalListSortingStrategy}
+        >
+          <TaskTableView 
+            columns={columns} 
+            onDeleteTask={onDeleteTask}
+            moveTask={moveTask}
+          />
+        </SortableContext>
         <div className="flex justify-end">
           <Button
             variant="outline"

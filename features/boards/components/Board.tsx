@@ -61,7 +61,13 @@ export default function Board() {
   const [isDeletingColumn, setIsDeletingColumn] = useState(false);
   const [deletingColumnId, setDeletingColumnId] = useState<string | null>(null);
   const [isCreatingTask, setIsCreatingTask] = useState(false);
-  const [viewMode, setViewMode] = useState<"cards" | "table">("cards");
+  const [viewMode, setViewMode] = useState<"cards" | "table">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("boardViewMode");
+      return (saved === "cards" || saved === "table") ? saved : "table";
+    }
+    return "table";
+  });
 
   const [filters, setFilters] = useState({
     priority: [] as string[],
@@ -169,35 +175,52 @@ export default function Board() {
     const taskId = active.id as string;
     const overId = over.id as string;
 
+    const sourceColumn = columns.find((col) =>
+      col.tasks.some((task) => task.id === taskId)
+    );
+    if (!sourceColumn) return;
+
+    // Check if dropping on a column (droppable area)
     const targetColumn = columns.find((col) => col.id === overId);
     if (targetColumn) {
-      const sourceColumn = columns.find((col) =>
-        col.tasks.some((task) => task.id === taskId)
-      );
-
-      if (sourceColumn && sourceColumn.id !== targetColumn.id) {
+      // Moving to a different column or to the end of the same column
+      if (sourceColumn.id !== targetColumn.id) {
         await moveTask(taskId, targetColumn.id, targetColumn.tasks.length);
       }
-    } else {
-      const sourceColumn = columns.find((col) =>
-        col.tasks.some((task) => task.id === taskId)
+      return;
+    }
+
+    // Check if dropping on another task
+    const targetTaskColumn = columns.find((col) =>
+      col.tasks.some((task) => task.id === overId)
+    );
+
+    if (targetTaskColumn) {
+      const oldIndex = sourceColumn.tasks.findIndex(
+        (task) => task.id === taskId
+      );
+      const newIndex = targetTaskColumn.tasks.findIndex(
+        (task) => task.id === overId
       );
 
-      const targetColumn = columns.find((col) =>
-        col.tasks.some((task) => task.id === overId)
-      );
-
-      if (sourceColumn && targetColumn) {
-        const oldIndex = sourceColumn.tasks.findIndex(
-          (task) => task.id === taskId
-        );
-
-        const newIndex = targetColumn.tasks.findIndex(
-          (task) => task.id === overId
-        );
-        if (oldIndex !== newIndex) {
-          await moveTask(taskId, targetColumn.id, newIndex);
+      // Only move if the position actually changed
+      if (
+        sourceColumn.id !== targetTaskColumn.id ||
+        oldIndex !== newIndex
+      ) {
+        // Calculate adjusted index for same-column moves
+        let adjustedIndex = newIndex;
+        if (sourceColumn.id === targetTaskColumn.id) {
+          // When moving within the same column, adjust for the removal
+          if (oldIndex < newIndex) {
+            // Moving down: insert after the target position
+            adjustedIndex = newIndex + 1;
+          } else {
+            // Moving up: insert at the target position
+            adjustedIndex = newIndex;
+          }
         }
+        await moveTask(taskId, targetTaskColumn.id, adjustedIndex);
       }
     }
   };
@@ -317,7 +340,12 @@ export default function Board() {
             onCreateColumn={() => setIsCreatingColumn(true)}
             onCreateTask={() => setIsCreatingTask(true)}
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
+            onViewModeChange={(mode) => {
+              setViewMode(mode);
+              if (typeof window !== "undefined") {
+                localStorage.setItem("boardViewMode", mode);
+              }
+            }}
           />
 
           <DndContext
@@ -336,6 +364,7 @@ export default function Board() {
               onDeleteTask={requestDeleteTask}
               onCreateColumn={() => setIsCreatingColumn(true)}
               viewMode={viewMode}
+              moveTask={moveTask}
             />
             <DragOverlay>
               {activeTask ? <TaskOverlay task={activeTask} /> : null}
