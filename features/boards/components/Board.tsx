@@ -22,6 +22,7 @@ import { BoardColumns } from "./BoardColumns";
 import { EditBoardDialog } from "./EditBoardDialog";
 import { FilterDialog } from "./FilterDialog";
 import { CreateTaskDialog } from "./CreateTaskDialog";
+import { EditTaskDialog } from "./EditTaskDialog";
 import { CreateColumnDialog } from "./CreateColumnDialog";
 import { DeleteTaskDialog } from "./DeleteTaskDialog";
 import { EditColumnDialog } from "./EditColumnDialog";
@@ -139,10 +140,11 @@ export default function Board() {
   const handleCreateTask = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.target as HTMLFormElement);
+    const assigneeValue = formData.get("assignee") as string;
     const taskData = {
       title: formData.get("title") as string,
       description: formData.get("description") as string | undefined,
-      assignee: formData.get("assignee") as string | undefined,
+      assignee: assigneeValue?.trim() || "me",
       priority: formData.get("priority") as "low" | "medium" | "high",
       dueDate: formData.get("dueDate") as string | undefined,
     };
@@ -163,10 +165,11 @@ export default function Board() {
     if (!editingTask) return;
 
     const formData = new FormData(e.target as HTMLFormElement);
+    const assigneeValue = formData.get("assignee") as string;
     const updates = {
       title: formData.get("title") as string,
       description: formData.get("description") as string | undefined,
-      assignee: formData.get("assignee") as string | undefined,
+      assignee: assigneeValue?.trim() || "me",
       priority: formData.get("priority") as "low" | "medium" | "high",
       dueDate: formData.get("dueDate") as string | undefined,
     };
@@ -176,7 +179,7 @@ export default function Board() {
         await updateRealTask(editingTask.id, {
           title: updates.title,
           description: updates.description || null,
-          assignee: updates.assignee || null,
+          assignee: updates.assignee,
           priority: updates.priority,
           dueDate: updates.dueDate || null,
         });

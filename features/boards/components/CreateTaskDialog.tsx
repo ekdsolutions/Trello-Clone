@@ -57,8 +57,7 @@ export function CreateTaskDialog({
           <Input
             id="assignee"
             name="assignee"
-            placeholder="Who should do this?"
-            required
+            placeholder="Who should do this? (defaults to 'me' if empty)"
           />
         </div>
         <div className="space-y-2">

@@ -63,7 +63,7 @@ export function EditTaskDialog({
           <Input
             id="assignee"
             name="assignee"
-            placeholder="Who should do this?"
+            placeholder="Who should do this? (defaults to 'me' if empty)"
             defaultValue={task.assignee || ""}
           />
         </div>
